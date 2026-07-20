@@ -1,4 +1,4 @@
-import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { Editor, Notice, Plugin, WorkspaceLeaf } from "obsidian";
 import { LinkwardenClient } from "./api/client";
 import { HighlightCache, type CacheData } from "./core/cache";
 import { buildDeepLink } from "./core/urls";
@@ -60,35 +60,19 @@ export default class LinkwardenPlugin extends Plugin {
     this.addCommand({
       id: "link-picker",
       name: "Link a source (search)",
-      editorCallback: (editor) => {
-        const client = this.getClient();
-        if (!client) return this.warnNotConfigured();
-        new LinkPicker(this, client, (link) => {
-          editor.replaceSelection(
-            formatBindingLink(linkLabel(link), this.deepLinkFor(link.id)),
-          );
-        }).open();
-      },
+      editorCallback: (editor) => this.openLinkPicker(editor),
     });
 
     this.addCommand({
       id: "export-note-links",
       name: "Export note links",
-      editorCallback: (editor) => {
-        const client = this.getClient();
-        if (!client) return this.warnNotConfigured();
-        new ExportModal(this, client, editor).open();
-      },
+      editorCallback: (editor) => this.openExport(editor),
     });
 
     this.addCommand({
       id: "relink-source",
       name: "Re-link source under cursor",
-      editorCallback: (editor) => {
-        const client = this.getClient();
-        if (!client) return this.warnNotConfigured();
-        runRelinkCommand(this, client, editor);
-      },
+      editorCallback: (editor) => this.relink(editor),
     });
 
     this.addSettingTab(new LinkwardenSettingTab(this.app, this));
@@ -135,6 +119,31 @@ export default class LinkwardenPlugin extends Plugin {
     new Notice(
       "Linkwarden: set the instance URL and access token in settings first.",
     );
+  }
+
+  /** F1 — open the search picker and insert a binding at the cursor. */
+  openLinkPicker(editor: Editor): void {
+    const client = this.getClient();
+    if (!client) return this.warnNotConfigured();
+    new LinkPicker(this, client, (link) => {
+      editor.replaceSelection(
+        formatBindingLink(linkLabel(link), this.deepLinkFor(link.id)),
+      );
+    }).open();
+  }
+
+  /** F3 — open the batch export modal for the given editor's note. */
+  openExport(editor: Editor): void {
+    const client = this.getClient();
+    if (!client) return this.warnNotConfigured();
+    new ExportModal(this, client, editor).open();
+  }
+
+  /** F5 — re-link the binding under the editor's cursor. */
+  relink(editor: Editor): void {
+    const client = this.getClient();
+    if (!client) return this.warnNotConfigured();
+    runRelinkCommand(this, client, editor);
   }
 
   async activatePanel(): Promise<void> {

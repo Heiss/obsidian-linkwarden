@@ -1,4 +1,5 @@
 import {
+  Editor,
   ItemView,
   MarkdownView,
   Notice,
@@ -132,14 +133,43 @@ export class HighlightPanel extends ItemView {
   }
 
   private renderHeader(container: HTMLElement): void {
-    const header = container.createDiv({ cls: "lw-panel-header" });
-    header.createSpan({ cls: "lw-panel-title", text: "Linkwarden highlights" });
-    const refresh = header.createEl("button", {
-      cls: "clickable-icon",
-      attr: { "aria-label": "Refresh" },
-    });
-    setIcon(refresh, "refresh-cw");
-    refresh.onclick = () => void this.refresh(true);
+    // Native Obsidian view toolbar (same structure as the file explorer).
+    const header = container.createDiv({ cls: "nav-header" });
+    const buttons = header.createDiv({ cls: "nav-buttons-container" });
+
+    const action = (
+      icon: string,
+      label: string,
+      onClick: () => void,
+    ): void => {
+      const btn = buttons.createDiv({
+        cls: "clickable-icon nav-action-button",
+        attr: { "aria-label": label },
+      });
+      setIcon(btn, icon);
+      btn.onclick = onClick;
+    };
+
+    action("refresh-cw", "Refresh highlights", () => void this.refresh(true));
+    action("search", "Link a source (search)", () =>
+      this.withEditor((ed) => this.plugin.openLinkPicker(ed)),
+    );
+    action("upload", "Export note links", () =>
+      this.withEditor((ed) => this.plugin.openExport(ed)),
+    );
+    action("link", "Re-link source under cursor", () =>
+      this.withEditor((ed) => this.plugin.relink(ed)),
+    );
+  }
+
+  /** Run an action against the current note's editor, or warn if none is open. */
+  private withEditor(fn: (editor: Editor) => void): void {
+    const view = this.markdownViewForCurrentFile();
+    if (!view) {
+      new Notice("Open the note in a Markdown pane first.");
+      return;
+    }
+    fn(view.editor);
   }
 
   private render(): void {

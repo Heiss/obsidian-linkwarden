@@ -5,24 +5,6 @@
   padding: 0 var(--size-4-2);
 }
 
-.lw-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--size-4-2);
-  padding: var(--size-4-2) 0;
-  position: sticky;
-  top: 0;
-  background-color: var(--background-secondary);
-  z-index: 1;
-}
-
-.lw-panel-title {
-  font-weight: var(--font-semibold);
-  font-size: var(--font-ui-small);
-  color: var(--text-muted);
-}
-
 .lw-panel-empty {
   color: var(--text-muted);
   font-size: var(--font-ui-small);
