@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "baseUrl": "http://localhost:8788",
+    "tokenSecretId": "linkwarden-token",
+    "tokenFallback": "demo-token",
+    "deepLinkTarget": "links",
+    "defaultCollection": "Reading",
+    "colorMap": {
+      "yellow": { "callout": "quote" },
+      "blue": { "callout": "info", "tag": "definition" },
+      "red": { "callout": "warning", "tag": "objection" },
+      "green": { "callout": "success", "tag": "idea" }
+    },
+    "cacheTtlMinutes": 60
+  },
+  "cache": {}
+}

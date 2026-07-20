@@ -25,7 +25,57 @@
           inherit system;
           config.allowUnfree = true;
         };
+
+        # `nix run .#obsidian-test` — build the plugin, install it into the
+        # bundled example vault, start the mock Linkwarden server, and open
+        # Obsidian on that vault with the plugin enabled. Run from the repo root.
+        obsidianTest = pkgs.writeShellApplication {
+          name = "obsidian-test";
+          runtimeInputs = [
+            pkgs.nodejs_22
+            pkgs.coreutils
+            pkgs-unstable.obsidian
+          ];
+          text = ''
+            root="''${PWD}"
+            if [ ! -f "''${root}/manifest.json" ] || [ ! -d "''${root}/example-vault" ]; then
+              echo "Run this from the plugin repo root (needs manifest.json + example-vault/)." >&2
+              exit 1
+            fi
+
+            echo "==> Installing dependencies (if needed)"
+            if [ ! -d "''${root}/node_modules" ]; then
+              ( cd "''${root}" && npm install )
+            fi
+
+            echo "==> Building the plugin"
+            ( cd "''${root}" && npm run build )
+
+            plugin_dir="''${root}/example-vault/.obsidian/plugins/linkwarden-highlights"
+            mkdir -p "''${plugin_dir}"
+            cp "''${root}/main.js" "''${root}/manifest.json" "''${root}/styles.css" "''${plugin_dir}/"
+
+            port="''${PORT:-8788}"
+            echo "==> Starting mock Linkwarden on port ''${port}"
+            PORT="''${port}" node "''${root}/example-vault/mock-linkwarden/server.mjs" &
+            mock_pid=$!
+            trap 'kill "''${mock_pid}" 2>/dev/null || true' EXIT
+
+            vault="''${root}/example-vault"
+            encoded="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "''${vault}")"
+            echo "==> Opening Obsidian on ''${vault}"
+            echo "    (First run: accept 'Trust author and enable plugins' if prompted.)"
+            obsidian "obsidian://open?path=''${encoded}"
+          '';
+        };
       in {
+        apps.obsidian-test = {
+          type = "app";
+          program = "${obsidianTest}/bin/obsidian-test";
+        };
+
+        packages.obsidian-test = obsidianTest;
+
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nodejs_22
