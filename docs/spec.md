@@ -1,216 +1,219 @@
-# Obsidian ↔ Linkwarden Plugin — Anforderungen / Spec
+# Obsidian ↔ Linkwarden Plugin — Requirements / Spec
 
-_Stand: 2026-07-20 · **Status: v1.3 — Entscheidungen D1–D6 getroffen** · build-ready_
+_As of: 2026-07-20 · **Status: v1.3 — decisions D1–D6 made** · build-ready_
 
-> **Beim Wiedereinstieg:** Design ist vollständig entschieden. Nächster Schritt =
-> Plugin-Gerüst bauen (Manifest, `requestUrl`-Client, Picker, Panel, Insert-Aktion,
-> Export-Modal). F5/F6 sind optionale Erweiterungen.
+> **When picking this back up:** The design is fully decided. Next step =
+> build the plugin scaffold (manifest, `requestUrl` client, picker, panel,
+> insert action, export modal). F5/F6 are optional extensions.
 
-## Kernidee
+## Core idea
 
-Highlights aus Linkwarden als **lebendige Lese-Hilfe** neben der aktiven Notiz
-anzeigen — nicht als Dateien materialisieren. Kein Sync-Motor, kein
-Merge-/Clobber-Problem. Leitmotiv: **in Linkwarden lesen, in Obsidian schreiben.**
-Materialisierung von Highlights passiert nur gezielt und opt-in (siehe F4).
+Show highlights from Linkwarden as a **living reading aid** next to the active
+note — rather than materializing them as files. No sync engine, no
+merge/clobber problem. Guiding principle: **read in Linkwarden, write in
+Obsidian.** Materializing highlights happens only deliberately and opt-in
+(see F4).
 
-## Getroffene Architektur-Entscheidungen
+## Architecture decisions made
 
-- **Form-Faktor:** Obsidian-Plugin (TypeScript). Zwingend, weil das Panel UI ist
-  und nur in-App läuft. Der serverseitige Daemon-Ansatz entfällt für diesen Strang.
-- **Binding über stabile `linkId`** (Integer-PK aus dem Linkwarden-Schema), nicht
-  über URL-Matching. Damit fällt die gesamte Normalisierungs-/`contains`-Fehlerklasse
-  weg: Verknüpfung ist eindeutig, sobald die id in der Notiz steht.
-- **API-Zugriff via Obsidian `requestUrl`**, nicht `fetch` (umgeht CORS auf
-  Electron-Ebene).
-- **Persistenter Cache** → Panel funktioniert auch offline mit (evtl. leicht
-  veralteten) Highlights.
-- **Auth:** Linkwarden Access Token (Bearer/JWT). Ablage über Obsidians
-  **SecretStorage-API**, nicht in `data.json` → das Token verlässt den gesyncten
-  Vault nicht. Details in Sicherheit / Betrieb (D6).
+- **Form factor:** Obsidian plugin (TypeScript). Mandatory, because the panel is
+  UI and only runs in-app. The server-side daemon approach is dropped for this
+  track.
+- **Binding via stable `linkId`** (integer PK from the Linkwarden schema), not
+  via URL matching. This eliminates the entire normalization/`contains` class of
+  errors: the binding is unambiguous as soon as the id is in the note.
+- **API access via Obsidian `requestUrl`**, not `fetch` (bypasses CORS at the
+  Electron level).
+- **Persistent cache** → the panel works offline with (possibly slightly stale)
+  highlights.
+- **Auth:** Linkwarden access token (Bearer/JWT). Stored via Obsidian's
+  **SecretStorage API**, not in `data.json` → the token never leaves the synced
+  vault. Details in Security / Operations (D6).
 
-## Funktionale Anforderungen
+## Functional requirements
 
-### F1 — Link-Picker (Verknüpfen per Suche)
-- Command mit belegbarem Hotkey öffnet ein `SuggestModal`.
-- Tippen → Query gegen `GET /api/v1/search?searchQueryString=…`
-  (macht serverseitig `contains` über name / url / description / tags).
-- Trefferliste zeigt Titel, URL, Collection, Tags.
-- Auswahl fügt an der Cursorposition einen **Markdown-Link ein, dessen Ziel die
-  Instanz-Deep-URL ist** (`<base>/links/<id>`) und dessen **Text** die lesbare
-  Beschriftung trägt. Der Link *ist* die Bindung — die id steckt in der href,
-  kein separates id/url-Feld zu pflegen (Single Source of Truth).
+### F1 — Link picker (link via search)
+- A command with an assignable hotkey opens a `SuggestModal`.
+- Typing → query against `GET /api/v1/search?searchQueryString=…`
+  (performs a server-side `contains` over name / url / description / tags).
+- The result list shows title, URL, collection, tags.
+- Selecting inserts a **Markdown link at the cursor position whose target is the
+  instance deep URL** (`<base>/links/<id>`) and whose **text** carries the
+  readable label. The link *is* the binding — the id lives in the href, no
+  separate id/url field to maintain (single source of truth).
   ```markdown
-  Siehe [On RAG — example.org](https://links.meine-instanz.tld/links/842).
+  See [On RAG — example.org](https://links.my-instance.tld/links/842).
   ```
-  - `<base>` kommt aus den Plugin-Settings (dieselbe Instanz-URL wie für die API).
-  - Ziel per **Settings-Toggle**, Default `/links/<id>` (Detailseite: Metadaten,
-    Original + alle Formate — bevorzugt, besonders bei öffentlicher Instanz).
-    Alternative `/preserved/<id>` (direkt Reader). Öffentliche Collections:
-    `/public/links/<id>` ist ohne Login klickbar/teilbar.
-  - **Link-Text = Fallback:** Original-URL oder Titel als Beschriftung → die Notiz
-    bleibt lesbar, falls die Instanz mal nicht erreichbar ist. Keine zweite
-    gepflegte Quelle, nur das Label desselben Links.
-- **Red-Team-Konsequenzen (D1):** (a) Host-Kopplung — Domain-/Instanz-Wechsel
-  erfordert vault-weites Find/Replace des Hosts (id überlebt); (b) `/links/<id>`
-  braucht Session → für Klickbarkeit ohne Login Reading-Collection öffentlich
-  schalten (`/public/links/<id>`).
-- Hinweis: Der Such-Endpoint bettet Highlights **nicht** ein; Highlight-Zahl
-  in der Liste wäre nur mit N Nachladungen möglich → bewusst weggelassen.
+  - `<base>` comes from the plugin settings (the same instance URL as for the API).
+  - Target via **settings toggle**, default `/links/<id>` (detail page: metadata,
+    original + all formats — preferred, especially on a public instance).
+    Alternative `/preserved/<id>` (direct reader). Public collections:
+    `/public/links/<id>` is clickable/shareable without login.
+  - **Link text = fallback:** original URL or title as the label → the note stays
+    readable if the instance is ever unreachable. No second maintained source,
+    just the label of the same link.
+- **Red-team consequences (D1):** (a) host coupling — a domain/instance change
+  requires a vault-wide find/replace of the host (the id survives); (b)
+  `/links/<id>` needs a session → for clickability without login, make the
+  reading collection public (`/public/links/<id>`).
+- Note: the search endpoint does **not** embed highlights; a highlight count in
+  the list would only be possible with N follow-up loads → deliberately omitted.
 
-### F2 — Highlight-Panel (Anzeige)
-- Eigene `ItemView` als Sidebar-Panel (rechts).
-- Reagiert auf `file-open` / `active-leaf-change` (entprellt).
-- Findet die Bindings, indem es die **externen Links der Notiz scannt** und die
-  href gegen `<base>/(links|preserved|public/links)/(\d+)` matcht → extrahiert
-  `<id>`, holt je Quelle `GET /api/v1/links/{id}/highlights`. Externe Links stehen
-  nicht im `metadataCache` → Body-Parsing (Code-Fences etc. ausschließen);
-  bewusst in Kauf genommen als Preis für Null-Duplikation.
-- Rendert Highlights **gruppiert pro Quelle**: `text`, `comment` (Notiz/Gedanke),
-  Farbbalken (`color`).
-- Sortierung innerhalb einer Quelle nach `startOffset` (Lesereihenfolge).
-- „Aktualisieren"-Button + Cache-TTL statt Live-Polling.
+### F2 — Highlight panel (display)
+- A dedicated `ItemView` as a sidebar panel (right).
+- Reacts to `file-open` / `active-leaf-change` (debounced).
+- Finds the bindings by **scanning the note's external links** and matching the
+  href against `<base>/(links|preserved|public/links)/(\d+)` → extracts `<id>`,
+  fetches `GET /api/v1/links/{id}/highlights` per source. External links are not
+  in the `metadataCache` → body parsing (exclude code fences etc.); accepted
+  deliberately as the price of zero duplication.
+- Renders highlights **grouped per source**: `text`, `comment` (note/thought),
+  color bar (`color`).
+- Sorted within a source by `startOffset` (reading order).
+- "Refresh" button + cache TTL instead of live polling.
 
-### F3 — Nach Linkwarden exportieren / archivieren (Strang A, integriert)
-- **Batch-Export-Modal (Kern):** Ein Command scannt die externen URLs der
-  aktiven Notiz und zeigt sie als **Checkbox-Liste**. Der Nutzer wählt, was nach
-  Linkwarden soll → je Auswahl `POST /api/v1/links`; danach wird der bestehende
-  Body-Link auf die Instanz-Deep-URL `<base>/links/<id>` **umgeschrieben** (Text
-  bleibt als Fallback erhalten → Binding-Format wie F1). Alles-/Nichts-Schalter.
-  - **Dubletten (D5):** Voraussetzung `preventDuplicateLinks` in Linkwarden aktiv.
-    Normalfall (neue URL) → ein `POST`. Antwortet der Server mit „Link already
-    exists", eine `/search` nachschieben, die existierende id holen und den
-    Body-Link darauf binden (statt Dublette). Vorbehalt: Server normalisiert nur
-    Trailing-Slash + www, Tracking-Param-Varianten rutschen durch.
-  - Label je Eintrag: der Markdown-Link-Text aus `[text](url)`, sonst die URL.
-  - Status je URL: **bereits verknüpft** (href zeigt schon auf `<base>/links/<id>`
-    → ausgegraut, nicht vorausgewählt) vs. **neu** (vorausgewählt) — „archiviere
-    alles Neue" ist so ein Klick.
-  - Ziel-Collection: konfigurierbarer Default (Setting, z. B. „Reading"), im
-    Modal überschreibbar. Ohne Angabe legt Linkwarden „Unorganized" an.
-- **On-the-fly aus dem Picker (F1):** Liefert die Suche keinen Treffer, bietet
-  dasselbe Modal die Aktion „URL archivieren" → `POST /links`, sofort binden.
-- **Async:** Linkwarden archiviert per Worker asynchron; der Export endet bei
-  „angelegt + verknüpft", ohne auf preserved/readable zu warten. Highlights
-  erscheinen später über F2, sobald in Linkwarden gelesen/markiert wurde.
-- _Build-Hinweis:_ URLs für den Scan aus dem Notiz-Text parsen (externe URLs
-  stehen **nicht** im `metadataCache`); Code-Blöcke, Inline-Code, `[[Wikilinks]]`
-  und Bild-Embeds ausschließen. Das Parsing darf unscharf sein — die
-  Checkbox-Bestätigung ist das Sicherheitsnetz (anders als beim stillen
-  Auto-Matching, das wir bewusst verworfen haben).
-- **Geschlossener Kreis:** Linkwarden = Archivar + Read-Later, Obsidian zieht die
-  Highlights über das Panel (F2) zurück.
+### F3 — Export/archive to Linkwarden (track A, integrated)
+- **Batch export modal (core):** A command scans the external URLs of the active
+  note and shows them as a **checkbox list**. The user picks what should go to
+  Linkwarden → per selection `POST /api/v1/links`; afterward the existing body
+  link is **rewritten** to the instance deep URL `<base>/links/<id>` (text stays
+  as fallback → binding format as in F1). Select-all/none switch.
+  - **Duplicates (D5):** Requires `preventDuplicateLinks` enabled in Linkwarden.
+    Normal case (new URL) → one `POST`. If the server responds "Link already
+    exists", follow up with a `/search` to fetch the existing id and bind the
+    body link to it (instead of a duplicate). Caveat: the server only normalizes
+    trailing slash + www; tracking-param variants slip through.
+  - Label per entry: the Markdown link text from `[text](url)`, otherwise the URL.
+  - Status per URL: **already linked** (href already points to `<base>/links/<id>`
+    → grayed out, not preselected) vs. **new** (preselected) — "archive everything
+    new" is thus one click.
+  - Target collection: configurable default (setting, e.g. "Reading"),
+    overridable in the modal. Without one, Linkwarden files it under
+    "Unorganized".
+- **On-the-fly from the picker (F1):** If the search returns no hit, the same
+  modal offers the "archive URL" action → `POST /links`, bind immediately.
+- **Async:** Linkwarden archives asynchronously via a worker; the export ends at
+  "created + linked", without waiting for preserved/readable. Highlights appear
+  later via F2, once read/marked in Linkwarden.
+- _Build note:_ Parse URLs for the scan from the note text (external URLs are
+  **not** in the `metadataCache`); exclude code blocks, inline code,
+  `[[wikilinks]]` and image embeds. The parsing may be fuzzy — the checkbox
+  confirmation is the safety net (unlike silent auto-matching, which we
+  deliberately rejected).
+- **Closed loop:** Linkwarden = archivist + read-later, Obsidian pulls the
+  highlights back via the panel (F2).
 
-### F4 — Highlight als Zitat einfügen (opt-in) **[NEU]**
-- Pro Highlight im Panel eine „einfügen"-Aktion.
-- Materialisiert den Highlight an der **aktuellen Cursorposition** als
-  Callout/Blockzitat (`text` + optional `comment`).
-- Vollständig **vom Nutzer gesteuert**: Default bleibt ephemer (kein Clutter),
-  Übernahme in die Prosa nur gezielt per Klick.
-- Kein Merge-Motor nötig, weil der Nutzer entscheidet, was landet.
-- **Format (entschieden, D2):** Callout `> [!quote]` mit Block-ID `^lw-<id>`
-  aus der Linkwarden-Highlight-id → referenzierbar via `[[quelle#^lw-<id>]]`.
-  Callout-Titel trägt den Quell-Link (Provenienz), `comment` als eigene Zeile,
-  wenn vorhanden. Beispiel:
+### F4 — Insert highlight as a quote (opt-in) **[NEW]**
+- Per highlight in the panel, an "insert" action.
+- Materializes the highlight at the **current cursor position** as a
+  callout/blockquote (`text` + optional `comment`).
+- Fully **user-controlled**: the default stays ephemeral (no clutter); adoption
+  into the prose happens only deliberately per click.
+- No merge engine needed, because the user decides what lands.
+- **Format (decided, D2):** Callout `> [!quote]` with block id `^lw-<id>` from the
+  Linkwarden highlight id → referenceable via `[[source#^lw-<id>]]`. The callout
+  title carries the source link (provenance), `comment` as its own line if
+  present. Example:
   ```markdown
   > [!quote] [On RAG](https://example.org/paper)
-  > Der markierte Text aus dem Artikel.
+  > The highlighted text from the article.
   >
-  > **Notiz:** dein Kommentar aus Linkwarden. ^lw-1571
+  > **Note:** your comment from Linkwarden. ^lw-1571
   ```
-  Fehlt `comment`, wandert `^lw-1571` ans Ende der Text-Zeile.
-- **Farb-Mapping (entschieden, D3):** Eine Settings-Map bildet jede Highlight-Farbe
-  auf einen Callout-Typ und/oder einen Tag ab; die Einfügung nutzt sie statt des
-  festen `> [!quote]`. Default-Vorschlag (frei änderbar), gekeyed auf die von der
-  API gelieferten Farbwerte:
-  - gelb → `> [!quote]`
-  - blau → `> [!info]` + `#definition`
-  - rot → `> [!warning]` + `#einwand`
-  - grün → `> [!success]` + `#idee`
-  Damit werden deine Farben zu durchsuchbarer Vault-Semantik. Das Panel (F2) zeigt
-  die Farbe weiterhin als Balken.
-- **Duplikat-Schutz (Pflicht):** Block-IDs müssen pro Notiz eindeutig sein.
-  Vor dem Einfügen die Notiz auf ein vorhandenes `^lw-<id>` prüfen; falls
-  vorhanden → nicht erneut einfügen, sondern Cursor dorthin springen (oder warnen).
-- _Bau-Hinweis:_ Block-ID-Platzierung an Callouts in Obsidian ist etwas
-  eigen — beim Bauen kurz verifizieren, dass `![[quelle#^lw-<id>]]` den ganzen
-  Callout einbettet.
+  If `comment` is missing, `^lw-1571` moves to the end of the text line.
+- **Color mapping (decided, D3):** A settings map maps each highlight color to a
+  callout type and/or a tag; the insertion uses it instead of the fixed
+  `> [!quote]`. Default suggestion (freely editable), keyed on the color values
+  returned by the API:
+  - yellow → `> [!quote]`
+  - blue → `> [!info]` + `#definition`
+  - red → `> [!warning]` + `#objection`
+  - green → `> [!success]` + `#idea`
+  This turns your colors into searchable vault semantics. The panel (F2) still
+  shows the color as a bar.
+- **Duplicate protection (mandatory):** Block ids must be unique per note. Before
+  inserting, check the note for an existing `^lw-<id>`; if present → don't insert
+  again, instead jump the cursor there (or warn).
+- _Build note:_ Block-id placement on callouts in Obsidian is a bit peculiar —
+  when building, verify briefly that `![[source#^lw-<id>]]` embeds the whole
+  callout.
 
-### F5 — Re-Link Command
-- Bricht ein Binding (Link in Linkwarden gelöscht + neu angelegt → neue id),
-  erlaubt ein Command, die Quelle neu zu verknüpfen.
-- Sichtbarer Markdown-Link in der Notiz bleibt als Fallback erhalten.
+### F5 — Re-link command
+- Breaks a binding (link deleted in Linkwarden + recreated → new id); a command
+  allows re-linking the source.
+- The visible Markdown link in the note stays as a fallback.
 
-### F6 — Browsable Linkwarden-Tab _(nice-to-have)_
-- Derselbe Picker auch als voller Tab (`ItemView`): gesamtes Linkwarden im
-  Obsidian-UI browsebar, mit Collection-/Tag-Filter
-  (API kann `collectionId` / `tagId`).
+### F6 — Browsable Linkwarden tab _(nice-to-have)_
+- The same picker also as a full tab (`ItemView`): the entire Linkwarden
+  browsable in the Obsidian UI, with collection/tag filter (the API supports
+  `collectionId` / `tagId`).
 
-## Einstellungen (Settings)
+## Settings
 
-- **Instanz-Base-URL** (`<base>`) — für API-Aufrufe *und* als Host der
-  Binding-Deep-Links.
-- **Access Token** (Bearer) — in Linkwarden unter Settings → Access Tokens
-  erzeugen; im Plugin via **SecretStorage** ablegen (SecretComponent im
-  Settings-Tab, über `Setting#addComponent()`), in den Settings steht nur die
-  Secret-ID.
-- **Deep-Link-Ziel** — Toggle `/links` (Default) ↔ `/preserved`.
-- **Default-Ziel-Collection** für F3-Export (z. B. „Reading"), im Modal
-  überschreibbar.
-- **Farb-Mapping** (D3) — Farbe → Callout-Typ + optionaler Tag für F4.
-- **Cache-TTL** für Highlights (Offline-Fähigkeit / Refresh-Verhalten).
+- **Instance base URL** (`<base>`) — for API calls *and* as the host of the
+  binding deep links.
+- **Access token** (Bearer) — create in Linkwarden under Settings → Access
+  Tokens; store in the plugin via **SecretStorage** (SecretComponent in the
+  settings tab, via `Setting#addComponent()`); the settings only hold the secret
+  id.
+- **Deep-link target** — toggle `/links` (default) ↔ `/preserved`.
+- **Default target collection** for the F3 export (e.g. "Reading"), overridable
+  in the modal.
+- **Color mapping** (D3) — color → callout type + optional tag for F4.
+- **Cache TTL** for highlights (offline capability / refresh behavior).
 
-_Linkwarden-seitige Voraussetzung (D5):_ `preventDuplicateLinks` in den
-Linkwarden-User-Settings aktivieren, damit der Export-Dublettenschutz greift.
+_Linkwarden-side prerequisite (D5):_ enable `preventDuplicateLinks` in the
+Linkwarden user settings so the export duplicate protection works.
 
-## Nicht-funktionale / technische Anforderungen
+## Non-functional / technical requirements
 
-- **Caching:** `linkId → { highlights, fetchedAt }`, TTL-Invalidierung, im
-  Plugin-State persistiert (Offline-Fähigkeit).
-- **Fallback:** sichtbarer Markdown-Link bleibt immer erhalten, falls die
-  Linkwarden-Instanz nicht erreichbar ist.
-- **Datenmodell-Referenz (aus Quelle verifiziert):**
+- **Caching:** `linkId → { highlights, fetchedAt }`, TTL invalidation, persisted
+  in the plugin state (offline capability).
+- **Fallback:** the visible Markdown link always stays intact, in case the
+  Linkwarden instance is unreachable.
+- **Data-model reference (verified from source):**
   - `Highlight`: `id`, `text`, `comment?`, `color`, `startOffset`, `endOffset`,
     `linkId`, `userId`, `createdAt`, `updatedAt`.
-  - Highlights sind **nur pro Link** abrufbar (`/links/{id}/highlights`), es gibt
-    keinen „alle Highlights"-Endpoint und keinen „updatedAt ≥ X"-Filter.
+  - Highlights are only retrievable **per link** (`/links/{id}/highlights`); there
+    is no "all highlights" endpoint and no "updatedAt ≥ X" filter.
 
-## Sicherheit / Betrieb
+## Security / Operations
 
-- **Token-Ablage (gelöst via SecretStorage, D6):** Statt Klartext in
-  `.obsidian/plugins/<plugin>/data.json` (das via Nextcloud auf alle Geräte + die
-  Nextcloud wandert) nutzt das Plugin Obsidians native **SecretStorage-API**
-  (`setSecret`/`getSecret`/`listSecrets`, seit v1.11.4). Der Wert liegt in
-  Obsidians geräte-lokalem, OS-gestütztem Store — **nicht** in den gesyncten
-  Vault-Dateien. Die Nextcloud-Exposition ist damit beseitigt; der frühere
-  Workaround „Plugin-Ordner vom Sync ausnehmen" entfällt.
-  - **Version-Gate:** ab **v1.11.5** ist der Store *at rest* OS-verschlüsselt (in
-    v1.11.4 lag er noch als Klartext im LevelDB, per PoC auslesbar) → mindestens
-    1.11.5 voraussetzen. Linux braucht ein OS-Secret-Backend (kwallet/libsecret).
-  - **Konsequenz:** Secret ist geräte-lokal und synct nicht → einmal pro Gerät
-    eingeben (für ein Token gewünscht). Nicht-sensible Settings synchronisieren
-    weiter normal.
-  - **Muster:** in den Settings nur die Secret-ID halten, Wert zur Laufzeit via
-    `getSecret` holen; Secret-IDs müssen `[a-z0-9-]+` sein. Optionaler
-    `data.json`-Fallback für Obsidian < 1.11.5.
+- **Token storage (solved via SecretStorage, D6):** Instead of plaintext in
+  `.obsidian/plugins/<plugin>/data.json` (which travels via Nextcloud to all
+  devices + the Nextcloud), the plugin uses Obsidian's native **SecretStorage
+  API** (`setSecret`/`getSecret`/`listSecrets`, since v1.11.4). The value lives in
+  Obsidian's device-local, OS-backed store — **not** in the synced vault files.
+  The Nextcloud exposure is thereby eliminated; the earlier workaround "exclude
+  the plugin folder from sync" is no longer needed.
+  - **Version gate:** from **v1.11.5** the store is OS-encrypted *at rest* (in
+    v1.11.4 it was still plaintext in LevelDB, readable via PoC) → require at
+    least 1.11.5. Linux needs an OS secret backend (kwallet/libsecret).
+  - **Consequence:** the secret is device-local and does not sync → enter it once
+    per device (desired for a token). Non-sensitive settings keep syncing
+    normally.
+  - **Pattern:** hold only the secret id in the settings, fetch the value at
+    runtime via `getSecret`; secret ids must be `[a-z0-9-]+`. Optional
+    `data.json` fallback for Obsidian < 1.11.5.
 
-## Offene Entscheidungen
+## Open decisions
 
-- **D1 — Binding-Speicherort:** ✅ entschieden (überarbeitet) → **Instanz-Deep-Link
-  als Zitat**: Markdown-Link, Ziel `<base>/links/<id>`, Text = lesbare Beschriftung
-  (Fallback). Single Source of Truth (id in der href), keine id/url-Dopplung.
-  Details + Red-Team-Konsequenzen in F1.
-- **D2 — Einfüge-Format (F4):** ✅ entschieden → Callout + Block-ID `^lw-<id>`
-  (referenzierbar). Details in F4.
-- **D3 — Farb-Semantik & Scope:** ✅ entschieden → **Farb→Callout/Tag-Mapping**
-  (konfigurierbar, Default in F4). Kein harter Scope-Filter; Panel zeigt Farbe als
-  Balken. Details in F4.
-- **D4 — Rückkanal:** ✅ entschieden → **reiner Pull** (kein Write-Back). `comment`
-  ist im Panel read-only; Obsidian-Elaboration ist neuer Freitext, keine Bearbeitung
-  des Quell-Kommentars. Null Konfliktfläche. (Panel-Write-back bleibt als spätere
-  Option denkbar.)
-- **D5 — Dublettenprüfung beim Export (F3):** ✅ entschieden → **Server-Dedupe**
-  via `preventDuplicateLinks`; auf „already exists" eine `/search` zum Finden+Binden
-  der existierenden id. Details in F3.
-- **D6 — Token-Ablage:** ✅ entschieden → Obsidian **SecretStorage** statt
-  `data.json` (Token verlässt den gesyncten Vault nicht; ≥ v1.11.5, Linux braucht
-  kwallet/libsecret). Details in Sicherheit / Betrieb.
+- **D1 — Binding storage location:** ✅ decided (revised) → **instance deep link
+  as a quote**: Markdown link, target `<base>/links/<id>`, text = readable label
+  (fallback). Single source of truth (id in the href), no id/url duplication.
+  Details + red-team consequences in F1.
+- **D2 — Insert format (F4):** ✅ decided → callout + block id `^lw-<id>`
+  (referenceable). Details in F4.
+- **D3 — Color semantics & scope:** ✅ decided → **color→callout/tag mapping**
+  (configurable, default in F4). No hard scope filter; the panel shows the color
+  as a bar. Details in F4.
+- **D4 — Back channel:** ✅ decided → **pure pull** (no write-back). `comment` is
+  read-only in the panel; Obsidian elaboration is new free text, not an edit of
+  the source comment. Zero conflict surface. (Panel write-back remains a possible
+  later option.)
+- **D5 — Duplicate check on export (F3):** ✅ decided → **server dedupe** via
+  `preventDuplicateLinks`; on "already exists" a `/search` to find + bind the
+  existing id. Details in F3.
+- **D6 — Token storage:** ✅ decided → Obsidian **SecretStorage** instead of
+  `data.json` (the token never leaves the synced vault; ≥ v1.11.5, Linux needs
+  kwallet/libsecret). Details in Security / Operations.
