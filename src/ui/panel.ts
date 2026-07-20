@@ -196,11 +196,25 @@ export class HighlightPanel extends ItemView {
     insert.onclick = () => this.insertQuote(binding, h);
   }
 
+  /** The open Markdown view showing the note this panel is bound to, if any. */
+  private markdownViewForCurrentFile(): MarkdownView | null {
+    if (!this.currentFile) return null;
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (view instanceof MarkdownView && view.file === this.currentFile) {
+        return view;
+      }
+    }
+    return null;
+  }
+
   /** F4 — materialize a highlight as a callout at the cursor, with dedupe. */
   private insertQuote(binding: Binding, h: Highlight): void {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view || view.file !== this.currentFile) {
-      new Notice("Open the source note in edit mode to insert.");
+    // Clicking the panel makes it the active view, so we can't rely on the
+    // active Markdown view — find the note's editor by file instead.
+    const view = this.markdownViewForCurrentFile();
+    if (!view) {
+      new Notice("Open the note in a Markdown pane to insert.");
       return;
     }
     const editor = view.editor;
@@ -214,7 +228,18 @@ export class HighlightPanel extends ItemView {
       sourceHref: binding.url,
       sourceLabel: label,
     });
-    editor.replaceSelection(`${quote}\n`);
+
+    // Insert at the note's cursor; if it is in reading mode there is no live
+    // cursor, so append at the end of the document instead.
+    if (view.getMode() === "preview") {
+      const last = editor.lastLine();
+      const end = { line: last, ch: editor.getLine(last).length };
+      const prefix = editor.getValue().endsWith("\n") ? "" : "\n";
+      editor.replaceRange(`${prefix}${quote}\n`, end);
+    } else {
+      editor.replaceSelection(`${quote}\n`);
+    }
+    new Notice(`Inserted ^${blockId(h.id)}.`);
   }
 }
 
