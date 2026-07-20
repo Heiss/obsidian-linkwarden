@@ -12,7 +12,7 @@ import type { Highlight } from "../api/models";
 import { extractBindings, type Binding } from "../core/links";
 import { formatQuote, hasBlockId, blockId } from "../core/quote";
 
-export const VIEW_TYPE_PANEL = "linkwarden-highlights-panel";
+export const VIEW_TYPE_PANEL = "linkwarden-panel";
 
 interface SourceGroup {
   binding: Binding;

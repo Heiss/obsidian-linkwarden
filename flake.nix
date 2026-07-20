@@ -51,7 +51,7 @@
             echo "==> Building the plugin"
             ( cd "''${root}" && npm run build )
 
-            plugin_dir="''${root}/example-vault/.obsidian/plugins/linkwarden-highlights"
+            plugin_dir="''${root}/example-vault/.obsidian/plugins/linkwarden"
             mkdir -p "''${plugin_dir}"
             cp "''${root}/main.js" "''${root}/manifest.json" "''${root}/styles.css" "''${plugin_dir}/"
 

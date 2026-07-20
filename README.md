@@ -1,8 +1,9 @@
-# Linkwarden Highlights
+# Linkwarden for Obsidian
 
-Show your [Linkwarden](https://linkwarden.app) highlights as a **living reading
-aid** next to the active note — without materializing them as files. Guiding
-principle: **read in Linkwarden, write in Obsidian.**
+**The [Linkwarden](https://linkwarden.app) plugin for Obsidian.** Search and link
+your saved links, archive URLs to Linkwarden, and show their highlights as a
+**living reading aid** next to the active note — without materializing them as
+files. Guiding principle: **read in Linkwarden, write in Obsidian.**
 
 No sync engine, no merge/clobber problem. A link is bound to Linkwarden by a
 single Markdown link whose target is the instance deep URL (`<base>/links/<id>`);
@@ -29,7 +30,7 @@ the id in the href *is* the binding (single source of truth).
 ## Setup
 
 1. In Linkwarden, create an access token under **Settings → Access Tokens**.
-2. In Obsidian, open **Settings → Linkwarden Highlights** and set your instance
+2. In Obsidian, open **Settings → Linkwarden** and set your instance
    base URL and paste the token. The token is stored via Obsidian's
    **SecretStorage** (device-local, OS-backed) — it never enters the synced
    vault. Requires Obsidian **≥ 1.11.5**; on Linux an OS secret backend

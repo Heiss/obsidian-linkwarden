@@ -1,9 +1,9 @@
 {
-  "id": "linkwarden-highlights",
-  "name": "Linkwarden Highlights",
+  "id": "linkwarden",
+  "name": "Linkwarden",
   "version": "0.1.0",
   "minAppVersion": "1.11.5",
-  "description": "Show Linkwarden highlights beside the active note, link and archive URLs to Linkwarden, and insert highlights as quotes.",
+  "description": "The Linkwarden companion for Obsidian: search and link your saved links, archive URLs, show their highlights beside your notes, and insert highlights as quotes.",
   "author": "Peter Heiss",
   "authorUrl": "https://github.com/Heiss",
   "isDesktopOnly": false

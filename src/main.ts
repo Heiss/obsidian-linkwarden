@@ -59,7 +59,7 @@ export default class LinkwardenPlugin extends Plugin {
 
     this.addCommand({
       id: "link-picker",
-      name: "Link to Linkwarden (search)",
+      name: "Link a source (search)",
       editorCallback: (editor) => {
         const client = this.getClient();
         if (!client) return this.warnNotConfigured();
@@ -73,7 +73,7 @@ export default class LinkwardenPlugin extends Plugin {
 
     this.addCommand({
       id: "export-note-links",
-      name: "Export note links to Linkwarden",
+      name: "Export note links",
       editorCallback: (editor) => {
         const client = this.getClient();
         if (!client) return this.warnNotConfigured();
@@ -83,7 +83,7 @@ export default class LinkwardenPlugin extends Plugin {
 
     this.addCommand({
       id: "relink-source",
-      name: "Re-link a source (pick new Linkwarden link)",
+      name: "Re-link source under cursor",
       editorCallback: (editor) => {
         const client = this.getClient();
         if (!client) return this.warnNotConfigured();

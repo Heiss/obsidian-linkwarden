@@ -1,7 +1,7 @@
 {
   "name": "obsidian-linkwarden",
   "version": "0.1.0",
-  "description": "Show Linkwarden highlights next to the active note, link/export links, and insert highlights as quotes.",
+  "description": "The Linkwarden plugin for Obsidian: search/link saved links, archive URLs, show highlights beside notes, and insert highlights as quotes.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",

@@ -1,4 +1,4 @@
-# Linkwarden Highlights — demo
+# Linkwarden for Obsidian — demo
 
 This vault is preconfigured against a **local mock Linkwarden** (started for you by
 `nix run .#obsidian-test`), so every feature works without a real server.
