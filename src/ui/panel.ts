@@ -11,7 +11,13 @@ import {
 import type LinkwardenPlugin from "../main";
 import type { Highlight } from "../api/models";
 import { extractBindings, type Binding } from "../core/links";
-import { formatQuote, hasBlockId, blockId } from "../core/quote";
+import {
+  formatQuote,
+  hasBlockId,
+  blockId,
+  blockSeparatorBefore,
+  blockSeparatorAfter,
+} from "../core/quote";
 
 export const VIEW_TYPE_PANEL = "linkwarden-panel";
 
@@ -259,15 +265,24 @@ export class HighlightPanel extends ItemView {
       sourceLabel: label,
     });
 
-    // Insert at the note's cursor; if it is in reading mode there is no live
-    // cursor, so append at the end of the document instead.
+    const value = editor.getValue();
+
+    // In reading mode there is no live cursor, so append at the end of the
+    // document; otherwise insert at the cursor / replace the selection.
     if (view.getMode() === "preview") {
+      const prefix = blockSeparatorBefore(value);
       const last = editor.lastLine();
       const end = { line: last, ch: editor.getLine(last).length };
-      const prefix = editor.getValue().endsWith("\n") ? "" : "\n";
       editor.replaceRange(`${prefix}${quote}\n`, end);
     } else {
-      editor.replaceSelection(`${quote}\n`);
+      // Pad with blank lines so the callout is its own block regardless of what
+      // sits directly above/below the cursor (a callout glued to the previous
+      // line renders merged into it).
+      const from = editor.posToOffset(editor.getCursor("from"));
+      const to = editor.posToOffset(editor.getCursor("to"));
+      const prefix = blockSeparatorBefore(value.slice(0, from));
+      const suffix = blockSeparatorAfter(value.slice(to));
+      editor.replaceSelection(`${prefix}${quote}${suffix}`);
     }
     new Notice(`Inserted ^${blockId(h.id)}.`);
   }
