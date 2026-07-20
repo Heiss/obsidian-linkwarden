@@ -62,10 +62,32 @@
             trap 'kill "''${mock_pid}" 2>/dev/null || true' EXIT
 
             vault="''${root}/example-vault"
-            encoded="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "''${vault}")"
+
+            # Obsidian only opens a folder it already knows about, so register
+            # the vault in an *isolated* app config (via XDG_CONFIG_HOME) and mark
+            # it open. This never touches the user's real Obsidian setup.
+            config_root="''${root}/example-vault/.obsidian-runtime"
+            mkdir -p "''${config_root}/obsidian"
+            node -e '
+              const fs = require("fs");
+              const crypto = require("crypto");
+              const [vault, file] = [process.argv[1], process.argv[2]];
+              let data = { vaults: {} };
+              try { data = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
+              data.vaults ||= {};
+              // Drop any stale entry for this path, then add a fresh open one.
+              for (const id of Object.keys(data.vaults)) {
+                if (data.vaults[id].path === vault) delete data.vaults[id];
+                else data.vaults[id].open = false;
+              }
+              data.vaults[crypto.randomBytes(8).toString("hex")] =
+                { path: vault, ts: Date.now(), open: true };
+              fs.writeFileSync(file, JSON.stringify(data));
+            ' "''${vault}" "''${config_root}/obsidian/obsidian.json"
+
             echo "==> Opening Obsidian on ''${vault}"
             echo "    (First run: accept 'Trust author and enable plugins' if prompted.)"
-            obsidian "obsidian://open?path=''${encoded}"
+            XDG_CONFIG_HOME="''${config_root}" obsidian
           '';
         };
       in {

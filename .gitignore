@@ -11,6 +11,7 @@ node_modules/
 *.log
 
 # example vault: ignore Obsidian runtime state and the copied plugin build
+example-vault/.obsidian-runtime/
 example-vault/.obsidian/workspace*.json
 example-vault/.obsidian/plugins/linkwarden/main.js
 example-vault/.obsidian/plugins/linkwarden/styles.css
