@@ -1,0 +1,10 @@
+{
+  "id": "linkwarden-highlights",
+  "name": "Linkwarden Highlights",
+  "version": "0.1.0",
+  "minAppVersion": "1.11.5",
+  "description": "Show Linkwarden highlights beside the active note, link and archive URLs to Linkwarden, and insert highlights as quotes.",
+  "author": "Peter Heiss",
+  "authorUrl": "https://github.com/peterheiss",
+  "isDesktopOnly": false
+}

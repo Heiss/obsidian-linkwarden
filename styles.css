@@ -1,0 +1,128 @@
+/* Linkwarden Highlights — panel styles. Uses Obsidian CSS variables so it
+   adapts to the active theme (light/dark). */
+
+.lw-panel {
+  padding: 0 var(--size-4-2);
+}
+
+.lw-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+  padding: var(--size-4-2) 0;
+  position: sticky;
+  top: 0;
+  background-color: var(--background-secondary);
+  z-index: 1;
+}
+
+.lw-panel-title {
+  font-weight: var(--font-semibold);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.lw-panel-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-4) var(--size-4-2);
+  text-align: center;
+}
+
+.lw-source {
+  margin-bottom: var(--size-4-4);
+}
+
+.lw-source-title {
+  font-weight: var(--font-semibold);
+  font-size: var(--font-ui-small);
+  margin-bottom: var(--size-4-1);
+}
+
+.lw-source-title a {
+  color: var(--text-normal);
+}
+
+.lw-highlight {
+  display: flex;
+  gap: var(--size-4-2);
+  padding: var(--size-4-2);
+  border-radius: var(--radius-s);
+  margin-bottom: var(--size-4-1);
+  background-color: var(--background-primary);
+}
+
+.lw-highlight:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.lw-color-bar {
+  flex: 0 0 3px;
+  border-radius: 3px;
+  background-color: var(--text-accent);
+}
+
+.lw-highlight-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lw-highlight-text {
+  font-size: var(--font-ui-small);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lw-highlight-comment {
+  margin-top: var(--size-4-1);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lw-highlight-actions {
+  margin-top: var(--size-4-1);
+}
+
+.lw-highlight-insert {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.lw-highlight-insert:hover {
+  text-decoration: underline;
+}
+
+/* Export modal */
+.lw-export-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) 0;
+}
+
+.lw-export-row .lw-export-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-export-row.is-linked {
+  color: var(--text-muted);
+}
+
+.lw-export-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+  margin: var(--size-4-2) 0;
+}
