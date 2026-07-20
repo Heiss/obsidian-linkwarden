@@ -126,6 +126,43 @@ const server = createServer(async (req, res) => {
     return send(res, 200, { response: link });
   }
 
+  // Human-facing deep link pages (`/links/:id`, `/preserved/:id`,
+  // `/public/links/:id`) — the real Linkwarden serves its web UI here; the mock
+  // renders a tiny stub so clicking a binding in Obsidian shows something.
+  const pm = path.match(/^\/(?:links|preserved|public\/links)\/(\d+)$/);
+  if (req.method === "GET" && pm) {
+    const id = Number(pm[1]);
+    const link = links.find((l) => l.id === id);
+    if (!link) return send(res, 404, { response: "Not found" });
+    const hs = highlightsByLink[id] ?? [];
+    const esc = (s) =>
+      String(s).replace(/[&<>"]/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+      );
+    const items = hs
+      .map(
+        (h) =>
+          `<li><span style="border-left:4px solid ${esc(h.color)};padding-left:8px">${esc(h.text)}</span>${
+            h.comment ? `<br><small><em>${esc(h.comment)}</em></small>` : ""
+          }</li>`,
+      )
+      .join("");
+    const html = `<!doctype html><meta charset="utf-8">
+<title>${esc(link.name)} — mock Linkwarden</title>
+<body style="font-family:system-ui;max-width:42rem;margin:3rem auto;padding:0 1rem">
+<p style="color:#888">mock Linkwarden · link #${id}</p>
+<h1>${esc(link.name)}</h1>
+<p><a href="${esc(link.url)}">${esc(link.url)}</a></p>
+<h2>Highlights (${hs.length})</h2>
+<ul style="line-height:1.6">${items || "<li><em>none yet</em></li>"}</ul>
+</body>`;
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    return res.end(html);
+  }
+
   send(res, 404, { response: "Not found" });
 });
 
