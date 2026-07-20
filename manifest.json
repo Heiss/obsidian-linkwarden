@@ -3,7 +3,7 @@
   "name": "Linkwarden",
   "version": "0.1.0",
   "minAppVersion": "1.11.5",
-  "description": "The Linkwarden companion for Obsidian: search and link your saved links, archive URLs, show their highlights beside your notes, and insert highlights as quotes.",
+  "description": "Search and link your Linkwarden bookmarks, archive URLs, show their highlights beside your notes, and insert highlights as quotes.",
   "author": "Peter Heiss",
   "authorUrl": "https://github.com/Heiss",
   "isDesktopOnly": false
