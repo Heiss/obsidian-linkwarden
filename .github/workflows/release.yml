@@ -11,6 +11,9 @@ on:
 
 permissions:
   contents: write
+  # Required for actions/attest-build-provenance to mint attestations.
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -34,8 +37,20 @@ jobs:
             exit 1
           fi
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      # Cryptographic provenance so users can verify the assets were built from
+      # this repo (per the Obsidian community-plugin review).
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            styles.css
 
       - name: Create release
         env:
