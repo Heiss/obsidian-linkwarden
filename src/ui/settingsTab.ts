@@ -3,6 +3,7 @@ import {
   DropdownComponent,
   Notice,
   PluginSettingTab,
+  requireApiVersion,
   SecretComponent,
   Setting,
   type SettingDefinitionItem,
@@ -10,6 +11,14 @@ import {
 import type LinkwardenPlugin from "../main";
 import type { DeepLinkTarget } from "../core/urls";
 
+// Dual-support settings tab (Obsidian migration guide "Path B"). On 1.13+
+// Obsidian renders declaratively from `getSettingDefinitions()` and skips
+// `display()`; on < 1.13 (still the floor, `minAppVersion` 1.12.7) it falls back
+// to the imperative `display()`. The two must stay in sync — the simple values
+// (base URL, deep-link target, cache TTL) are declarative `control`s on 1.13 so
+// they surface in settings search, and imperative `Setting`s below it. The
+// custom surfaces (token, connection test, collection picker, colour map) share
+// one `Setting`-configuring helper between both paths.
 export class LinkwardenSettingTab extends PluginSettingTab {
   constructor(
     app: App,
@@ -18,10 +27,8 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
-  // Declarative settings (Obsidian ≥ 1.13). Simple values are `control`s so they
-  // surface in the settings search; the custom surfaces (token, connection test,
-  // collection picker, color map) use the `render` escape hatch. There is no
-  // `display()` fallback — the plugin's minAppVersion is 1.13.0.
+  // Declarative definitions (Obsidian ≥ 1.13). Returning a non-empty array makes
+  // Obsidian bypass display() on 1.13+.
   getSettingDefinitions(): SettingDefinitionItem[] {
     return [
       {
@@ -102,8 +109,8 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     ];
   }
 
-  // Read the value backing a declarative `control`. Only the keys used above are
-  // handled; everything else lives behind a custom `render`.
+  // Read the value backing a declarative `control` (Obsidian ≥ 1.13). Only the
+  // keys used above are handled; the rest live behind a custom `render`.
   getControlValue(key: string): unknown {
     const s = this.plugin.settings;
     switch (key) {
@@ -138,6 +145,83 @@ export class LinkwardenSettingTab extends PluginSettingTab {
         return;
     }
     await this.plugin.saveSettings();
+  }
+
+  // Imperative fallback for Obsidian < 1.13. Obsidian calls display() only when
+  // getSettingDefinitions() is absent/empty, so on 1.13+ this is bypassed. The
+  // body lives in renderImperative() so the < 1.13 re-render path can reuse it
+  // without calling the (1.13-deprecated) display() itself.
+  display(): void {
+    this.renderImperative();
+  }
+
+  private renderImperative(): void {
+    const { containerEl } = this;
+    containerEl.empty();
+    const s = this.plugin.settings;
+
+    new Setting(containerEl)
+      .setName("Instance base URL")
+      .setDesc(
+        "Your Linkwarden URL, used for API calls and binding deep links. " +
+          "Defaults to Linkwarden Cloud; change it if you self-host.",
+      )
+      .addText((t) =>
+        t
+          .setPlaceholder("https://cloud.linkwarden.app")
+          .setValue(s.baseUrl)
+          .onChange(async (v) => {
+            s.baseUrl = v.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    this.renderTokenSetting(new Setting(containerEl));
+    this.renderConnectionTest(new Setting(containerEl));
+
+    new Setting(containerEl)
+      .setName("Deep-link target")
+      .setDesc("Where binding links point. Public collections can be shared without login.")
+      .addDropdown((d) =>
+        d
+          .addOption("links", "/links (detail page)")
+          .addOption("preserved", "/preserved (reader)")
+          .addOption("public/links", "/public/links (no login)")
+          .setValue(s.deepLinkTarget)
+          .onChange(async (v) => {
+            s.deepLinkTarget = v as DeepLinkTarget;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    this.renderCollectionSetting(new Setting(containerEl));
+
+    new Setting(containerEl)
+      .setName("Highlight cache TTL (minutes)")
+      .setDesc("How long cached highlights stay fresh before a refetch. 0 = always refetch.")
+      .addText((t) =>
+        t
+          .setPlaceholder("60")
+          .setValue(String(s.cacheTtlMinutes))
+          .onChange(async (v) => {
+            const n = Number.parseInt(v, 10);
+            s.cacheTtlMinutes = Number.isFinite(n) && n >= 0 ? n : 60;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    this.renderColorMap(containerEl);
+  }
+
+  // Rebuild the settings pane after a structural change (colour added/removed).
+  // 1.13+ rebuilds the declarative tab via update(); below it we re-run the
+  // imperative render directly (not display(), which is 1.13-deprecated).
+  private rerender(): void {
+    if (requireApiVersion("1.13.0")) {
+      this.update();
+    } else {
+      this.renderImperative();
+    }
   }
 
   private renderTokenSetting(setting: Setting): void {
@@ -262,6 +346,19 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     }
   }
 
+  private renderColorMap(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Color mapping").setHeading();
+    containerEl.createEl("p", {
+      text: "Map each Linkwarden highlight color to a callout type and an optional tag for the insert action.",
+      cls: "setting-item-description",
+    });
+
+    for (const color of Object.keys(this.plugin.settings.colorMap)) {
+      this.renderColorRow(new Setting(containerEl), color);
+    }
+    this.renderAddColorRow(new Setting(containerEl));
+  }
+
   private renderColorRow(setting: Setting, color: string): void {
     const map = this.plugin.settings.colorMap;
     const rule = map[color];
@@ -294,8 +391,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
           .onClick(async () => {
             delete map[color];
             await this.plugin.saveSettings();
-            // Structural change — rebuild the declarative tab so the row is gone.
-            this.update();
+            this.rerender();
           }),
       );
   }
@@ -318,8 +414,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
             if (!newColor || map[newColor]) return;
             map[newColor] = { callout: "quote" };
             await this.plugin.saveSettings();
-            // Structural change — rebuild the declarative tab to show the new row.
-            this.update();
+            this.rerender();
           }),
       );
   }
