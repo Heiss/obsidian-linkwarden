@@ -42,7 +42,7 @@
 .lw-color-bar {
   flex: 0 0 3px;
   border-radius: 3px;
-  background-color: var(--text-accent);
+  background-color: var(--lw-highlight-color, var(--text-accent));
 }
 
 .lw-highlight-body {
@@ -107,4 +107,133 @@
   justify-content: space-between;
   gap: var(--size-4-2);
   margin: var(--size-4-2) 0;
+}
+
+.lw-export-controls > div {
+  display: flex;
+  gap: var(--size-4-1);
+}
+
+/* Scrollable link list so a whole-vault scan stays inside the modal. */
+.lw-export-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* Source-note header (absolute path) above the links found in that note. */
+.lw-export-group {
+  margin: var(--size-4-3) 0 var(--size-4-1);
+  padding-bottom: var(--size-4-1);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+  font-weight: var(--font-semibold);
+  overflow-wrap: anywhere;
+}
+
+.lw-export-group:first-child {
+  margin-top: 0;
+}
+
+/* Rows sit slightly indented under their note header. */
+.lw-export-row {
+  padding-left: var(--size-4-2);
+  border-radius: var(--radius-s);
+}
+
+/* Highlight the row currently being archived. */
+.lw-export-row.is-working {
+  background: var(--background-modifier-hover);
+}
+
+.lw-export-row .lw-export-label {
+  display: flex;
+  align-items: center;
+}
+
+.lw-export-row .lw-export-label > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Trailing per-row status icon: green check when linked, spinner while working. */
+.lw-export-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--size-4-2);
+}
+
+.lw-export-status .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.lw-export-status.is-done {
+  color: var(--color-green);
+}
+
+.lw-export-status.is-failed {
+  color: var(--color-red);
+}
+
+.lw-export-status.is-working {
+  color: var(--text-accent);
+}
+
+.lw-export-status.is-working .svg-icon {
+  animation: lw-spin 0.8s linear infinite;
+}
+
+@keyframes lw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer: archive/close button on the right, run progress bar filling the left. */
+.lw-export-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+  margin-top: var(--size-4-3);
+}
+
+.lw-export-footer button {
+  margin-left: auto;
+}
+
+.lw-run-progress {
+  display: none;
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.lw-run-progress.is-visible {
+  display: block;
+}
+
+/* Scan / archive progress bar. */
+.lw-progress {
+  margin: var(--size-4-4) 0;
+}
+
+.lw-progress-label {
+  margin-bottom: var(--size-4-2);
+  color: var(--text-muted);
+}
+
+.lw-progress-track {
+  height: 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.lw-progress-bar {
+  height: 100%;
+  width: 0;
+  background: var(--interactive-accent);
+  transition: width 0.15s linear;
 }

@@ -1,6 +1,12 @@
-import { App, PluginSettingTab, SecretComponent, Setting } from "obsidian";
+import {
+  App,
+  DropdownComponent,
+  Notice,
+  PluginSettingTab,
+  SecretComponent,
+  Setting,
+} from "obsidian";
 import type LinkwardenPlugin from "../main";
-import { normalizeSecretId } from "../core/secretId";
 import type { DeepLinkTarget } from "../core/urls";
 
 export class LinkwardenSettingTab extends PluginSettingTab {
@@ -46,18 +52,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(containerEl)
-      .setName("Default collection")
-      .setDesc("Target collection for exports. Empty → Linkwarden's \"Unorganized\".")
-      .addText((t) =>
-        t
-          .setPlaceholder("Reading")
-          .setValue(s.defaultCollection)
-          .onChange(async (v) => {
-            s.defaultCollection = v.trim();
-            await this.plugin.saveSettings();
-          }),
-      );
+    this.renderCollectionSetting(containerEl);
 
     new Setting(containerEl)
       .setName("Highlight cache TTL (minutes)")
@@ -78,9 +73,15 @@ export class LinkwardenSettingTab extends PluginSettingTab {
 
   private renderTokenSetting(containerEl: HTMLElement): void {
     const store = this.plugin.tokenStore;
-    const desc = store.hasSecretStorage()
+    const storage = store.hasSecretStorage()
       ? "Stored in Obsidian's device-local SecretStorage — never enters the synced vault. Enter once per device."
       : "SecretStorage unavailable (needs Obsidian ≥ 1.11.5, Linux needs kwallet/libsecret). Falls back to storing in the vault settings.";
+
+    const desc = new DocumentFragment();
+    desc.append(
+      "Generate one in Linkwarden under Settings → Access Tokens → Create Access Token, then paste it here. ",
+      storage,
+    );
 
     const setting = new Setting(containerEl)
       .setName("Access token")
@@ -94,17 +95,69 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       });
       return c;
     });
+  }
 
-    // Secret id used in SecretStorage — advanced, kept valid automatically.
+  private renderCollectionSetting(containerEl: HTMLElement): void {
+    const s = this.plugin.settings;
+    let dropdown: DropdownComponent | undefined;
+
+    const populate = (d: DropdownComponent): void => {
+      d.selectEl.empty();
+      d.addOption("", 'Unorganized (Linkwarden default)');
+      const names = new Set<string>();
+      for (const c of this.plugin.collections) {
+        if (names.has(c.name)) continue;
+        names.add(c.name);
+        d.addOption(c.name, c.name);
+      }
+      // Keep the stored value selectable even when it isn't in the fetched list
+      // (not yet refreshed, or a collection since renamed/removed).
+      if (s.defaultCollection && !names.has(s.defaultCollection)) {
+        d.addOption(s.defaultCollection, `${s.defaultCollection} (not in list)`);
+      }
+      d.setValue(s.defaultCollection);
+    };
+
     new Setting(containerEl)
-      .setName("Secret id")
-      .setDesc("Identifier under which the token is stored (advanced; [a-z0-9-]).")
-      .addText((t) =>
-        t.setValue(this.plugin.settings.tokenSecretId).onChange(async (v) => {
-          this.plugin.settings.tokenSecretId = normalizeSecretId(v);
+      .setName("Default collection")
+      .setDesc('Target collection for exports. "Unorganized" is Linkwarden\'s default.')
+      .addDropdown((d) => {
+        dropdown = d;
+        populate(d);
+        d.onChange(async (v) => {
+          s.defaultCollection = v;
           await this.plugin.saveSettings();
-        }),
+        });
+      })
+      .addExtraButton((b) =>
+        b
+          .setIcon("refresh-cw")
+          .setTooltip("Reload collections from Linkwarden")
+          .onClick(() => void this.refreshCollections(dropdown, populate)),
       );
+
+    // Load once per session so the dropdown isn't empty on first open; further
+    // reloads are on-demand via the refresh button.
+    if (this.plugin.collections.length === 0 && this.plugin.getClient()) {
+      void this.refreshCollections(dropdown, populate);
+    }
+  }
+
+  private async refreshCollections(
+    dropdown: DropdownComponent | undefined,
+    populate: (d: DropdownComponent) => void,
+  ): Promise<void> {
+    try {
+      const result = await this.plugin.fetchCollections();
+      if (result === null) {
+        new Notice("Linkwarden: set the instance URL and access token first.");
+        return;
+      }
+      if (dropdown) populate(dropdown);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      new Notice(`Linkwarden: could not load collections — ${msg}`);
+    }
   }
 
   private renderColorMap(containerEl: HTMLElement): void {
@@ -121,7 +174,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
         .setName(color)
         .addText((t) =>
           t
-            .setPlaceholder("callout (e.g. quote)")
+            .setPlaceholder("Callout type (quote)")
             .setValue(rule.callout)
             .onChange(async (v) => {
               rule.callout = v.trim() || "quote";
@@ -130,7 +183,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
         )
         .addText((t) =>
           t
-            .setPlaceholder("tag (optional)")
+            .setPlaceholder("Tag (optional)")
             .setValue(rule.tag ?? "")
             .onChange(async (v) => {
               const tag = v.trim().replace(/^#/, "");
@@ -155,7 +208,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Add a color")
       .addText((t) =>
-        t.setPlaceholder("color value from Linkwarden").onChange((v) => {
+        t.setPlaceholder("Color value from Linkwarden").onChange((v) => {
           newColor = v.trim().toLowerCase();
         }),
       )

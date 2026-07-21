@@ -14,7 +14,7 @@ export function linkLabel(link: Pick<Link, "id" | "name" | "url">): string {
 
 /** Escape a label so it is safe inside `[...]` of a Markdown link. */
 export function escapeLabel(label: string): string {
-  return label.replace(/[\[\]]/g, "\\$&").replace(/\r?\n/g, " ").trim();
+  return label.replace(/[[\]]/g, "\\$&").replace(/\r?\n/g, " ").trim();
 }
 
 /** Build the Markdown binding link `[label](href)`. */

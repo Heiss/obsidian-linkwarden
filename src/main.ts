@@ -1,5 +1,6 @@
 import { Editor, Notice, Plugin, WorkspaceLeaf } from "obsidian";
 import { LinkwardenClient } from "./api/client";
+import type { CollectionSummary } from "./api/models";
 import { HighlightCache, type CacheData } from "./core/cache";
 import { buildDeepLink } from "./core/urls";
 import {
@@ -15,6 +16,7 @@ import { LinkPicker } from "./ui/picker";
 import { ExportModal } from "./ui/exportModal";
 import { runRelinkCommand } from "./ui/relink";
 import { formatBindingLink, linkLabel } from "./core/binding";
+import { TOKEN_SECRET_ID } from "./core/secretId";
 
 interface PersistedData {
   settings?: Partial<LinkwardenSettings>;
@@ -23,6 +25,8 @@ interface PersistedData {
 
 export default class LinkwardenPlugin extends Plugin {
   settings: LinkwardenSettings = { ...DEFAULT_SETTINGS };
+  /** Collections last fetched from the instance, for the settings picker. */
+  collections: CollectionSummary[] = [];
   cache!: HighlightCache;
   tokenStore!: TokenStore;
 
@@ -32,7 +36,7 @@ export default class LinkwardenPlugin extends Plugin {
     this.cache = new HighlightCache(this.settings.cacheTtlMinutes, data?.cache);
     this.tokenStore = createTokenStore(
       this.app,
-      this.settings.tokenSecretId,
+      TOKEN_SECRET_ID,
       {
         get: () => this.settings.tokenFallback,
         set: (v) => {
@@ -115,6 +119,17 @@ export default class LinkwardenPlugin extends Plugin {
     });
   }
 
+  /**
+   * Fetch the instance's collections and cache them on the plugin. Returns null
+   * when no client is configured; throws only on a transport/API failure.
+   */
+  async fetchCollections(): Promise<CollectionSummary[] | null> {
+    const client = this.getClient();
+    if (!client) return null;
+    this.collections = await client.getCollections();
+    return this.collections;
+  }
+
   warnNotConfigured(): void {
     new Notice(
       "Linkwarden: set the instance URL and access token in settings first.",
@@ -154,6 +169,6 @@ export default class LinkwardenPlugin extends Plugin {
       leaf = workspace.getRightLeaf(false);
       await leaf?.setViewState({ type: VIEW_TYPE_PANEL, active: true });
     }
-    if (leaf) workspace.revealLeaf(leaf);
+    if (leaf) await workspace.revealLeaf(leaf);
   }
 }

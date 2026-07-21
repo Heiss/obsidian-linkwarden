@@ -1,7 +1,6 @@
 {
   "settings": {
     "baseUrl": "http://localhost:8788",
-    "tokenSecretId": "linkwarden-token",
     "tokenFallback": "demo-token",
     "deepLinkTarget": "links",
     "defaultCollection": "Reading",

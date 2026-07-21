@@ -33,7 +33,7 @@ the id in the href *is* the binding (single source of truth).
 2. In Obsidian, open **Settings → Linkwarden** and set your instance
    base URL and paste the token. The token is stored via Obsidian's
    **SecretStorage** (device-local, OS-backed) — it never enters the synced
-   vault. Requires Obsidian **≥ 1.11.5**; on Linux an OS secret backend
+   vault. Requires Obsidian **≥ 1.12.7**; on Linux an OS secret backend
    (kwallet/libsecret) must be available.
 3. (Optional) Set a default target collection, the deep-link target
    (`/links` vs `/preserved`), the color map, and the cache TTL.

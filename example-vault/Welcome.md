@@ -25,9 +25,11 @@ Try this:
    Insert the same one twice — it refuses (the id is already in the note).
 3. **Link a source:** run *Linkwarden: Link a source (search)* (or the toolbar
    search icon) and type e.g. `order` or `ml`.
-4. **Export:** add a plain external link, e.g. https://example.org/new-thing ,
+4. **Export:** open **Reading list.md** — a note full of plain external links —
    then run *Linkwarden: Export note links* (or the toolbar upload icon) and
-   archive it — the link is rewritten to a binding.
+   archive some; each is rewritten in place to a binding. In the modal, *Scan
+   entire vault* crawls every note (with a progress bar) so you can export links
+   from the whole vault at once — those get rewritten on disk in their own notes.
 5. **Re-link:** put the cursor on a binding above and run *Linkwarden: Re-link
    source under cursor* (or the toolbar link icon).
 

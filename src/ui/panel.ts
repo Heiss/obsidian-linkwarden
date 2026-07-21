@@ -217,7 +217,7 @@ export class HighlightPanel extends ItemView {
   ): void {
     const row = parent.createDiv({ cls: "lw-highlight" });
     const bar = row.createDiv({ cls: "lw-color-bar" });
-    if (h.color) bar.style.backgroundColor = h.color;
+    if (h.color) bar.style.setProperty("--lw-highlight-color", h.color);
 
     const bodyEl = row.createDiv({ cls: "lw-highlight-body" });
     bodyEl.createDiv({ cls: "lw-highlight-text", text: h.text });

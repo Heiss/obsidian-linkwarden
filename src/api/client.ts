@@ -3,7 +3,12 @@
 // fake, and adapted onto Obsidian's `requestUrl` in the plugin itself.
 
 import type { HttpClient, HttpResponse } from "./http";
-import type { Link, Highlight, CreateLinkBody } from "./models";
+import type {
+  Link,
+  Highlight,
+  CreateLinkBody,
+  CollectionSummary,
+} from "./models";
 
 export interface ClientConfig {
   baseUrl: string;
@@ -79,6 +84,36 @@ export class LinkwardenClient {
       | { data?: { links?: Link[] } }
       | undefined;
     return body?.data?.links ?? [];
+  }
+
+  /**
+   * GET /api/v1/collections — returns the user's collections as `{ id, name }`,
+   * dropping any entry missing an id or name. Used to populate the
+   * default-collection picker in settings.
+   */
+  async getCollections(): Promise<CollectionSummary[]> {
+    const res = await this.http({
+      url: this.url(`/api/v1/collections`),
+      method: "GET",
+      headers: this.authHeaders(),
+    });
+
+    if (!isSuccess(res.status)) {
+      throw new Error(
+        `Linkwarden getCollections failed (HTTP ${res.status}): ${errorMessage(res)}`,
+      );
+    }
+
+    const body = readJson(res) as
+      | { response?: Array<{ id?: number; name?: string }> }
+      | undefined;
+    const out: CollectionSummary[] = [];
+    for (const c of body?.response ?? []) {
+      if (typeof c.id === "number" && typeof c.name === "string") {
+        out.push({ id: c.id, name: c.name });
+      }
+    }
+    return out;
   }
 
   /** GET /api/v1/links/{id}/highlights — returns the `response` array, or `[]`. */

@@ -48,7 +48,7 @@ const INLINE_CODE = /`[^`\n]+`/g;
 const WIKI = /!?\[\[[^\]]*\]\]/g;
 // Markdown links and image embeds: an optional leading `!`, `[text]`, `(target)`.
 const MD_LINK = /(!?)\[([^\]]*)\]\(([^)]+)\)/g;
-const BARE_URL = /https?:\/\/[^\s<>()\[\]]+/g;
+const BARE_URL = /https?:\/\/[^\s<>()[\]]+/g;
 
 function isHttp(url: string): boolean {
   return /^https?:\/\//i.test(url);

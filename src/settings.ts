@@ -1,6 +1,6 @@
 // Plugin settings shape and defaults. Sensitive values (the access token) are
-// NOT stored here — only the SecretStorage id is (see D6). Kept obsidian-free so
-// the defaults/merge logic is unit-testable.
+// NOT stored here — the token lives in SecretStorage under a fixed id (see D6).
+// Kept obsidian-free so the defaults/merge logic is unit-testable.
 
 import type { DeepLinkTarget } from "./core/urls";
 import { DEFAULT_COLOR_MAP, type ColorMap } from "./core/colorMap";
@@ -8,8 +8,6 @@ import { DEFAULT_COLOR_MAP, type ColorMap } from "./core/colorMap";
 export interface LinkwardenSettings {
   /** Instance base URL — used for API calls *and* as the host of deep links. */
   baseUrl: string;
-  /** SecretStorage id under which the access token is stored (`[a-z0-9-]+`). */
-  tokenSecretId: string;
   /** Plaintext token fallback for Obsidian < 1.11.5 (empty when SecretStorage). */
   tokenFallback: string;
   /** Where binding deep links point. */
@@ -24,7 +22,6 @@ export interface LinkwardenSettings {
 
 export const DEFAULT_SETTINGS: LinkwardenSettings = {
   baseUrl: "",
-  tokenSecretId: "linkwarden-token",
   tokenFallback: "",
   deepLinkTarget: "links",
   defaultCollection: "",

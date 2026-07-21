@@ -44,7 +44,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
 
   renderSuggestion(item: Suggestion, el: HTMLElement): void {
     if (item.kind === "archive") {
-      el.createEl("div", { text: `Archive “${item.url}” to Linkwarden` });
+      el.createDiv({ text: `Archive “${item.url}” to Linkwarden` });
       el.createEl("small", {
         text: "No match found — create a new link.",
         cls: "lw-suggest-sub",
@@ -52,7 +52,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
       return;
     }
     const { link } = item;
-    el.createEl("div", { text: linkLabel(link) });
+    el.createDiv({ text: linkLabel(link) });
     const parts: string[] = [];
     if (link.url) parts.push(link.url);
     if (link.collection?.name) parts.push(`⌂ ${link.collection.name}`);
@@ -61,12 +61,16 @@ export class LinkPicker extends SuggestModal<Suggestion> {
     el.createEl("small", { text: parts.join("  ·  "), cls: "lw-suggest-sub" });
   }
 
-  async onChooseSuggestion(item: Suggestion): Promise<void> {
+  onChooseSuggestion(item: Suggestion): void {
     if (item.kind === "link") {
       this.onResolved(item.link);
       return;
     }
-    const link = await resolveArchive(this.plugin, this.client, item.url);
+    void this.archiveAndResolve(item.url);
+  }
+
+  private async archiveAndResolve(url: string): Promise<void> {
+    const link = await resolveArchive(this.plugin, this.client, url);
     if (link) {
       new Notice(`Archived to Linkwarden (#${link.id}).`);
       this.onResolved(link);

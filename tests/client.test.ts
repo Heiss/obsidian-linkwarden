@@ -73,6 +73,53 @@ describe("LinkwardenClient.getHighlights", () => {
   });
 });
 
+describe("LinkwardenClient.getCollections", () => {
+  it("returns id/name pairs and hits the right url", async () => {
+    const { http, lastRequest } = fakeHttp({
+      status: 200,
+      json: {
+        response: [
+          { id: 1, name: "Reading", color: "#0ea5e9" },
+          { id: 2, name: "Research" },
+        ],
+      },
+    });
+    const client = new LinkwardenClient(http, config);
+
+    const result = await client.getCollections();
+
+    expect(result).toEqual([
+      { id: 1, name: "Reading" },
+      { id: 2, name: "Research" },
+    ]);
+    const req = lastRequest()!;
+    expect(req.method).toBe("GET");
+    expect(req.url).toBe("https://links.example.tld/api/v1/collections");
+    expect(req.headers?.Authorization).toBe("Bearer secret-token");
+  });
+
+  it("drops entries missing an id or name", async () => {
+    const { http } = fakeHttp({
+      status: 200,
+      json: { response: [{ id: 1 }, { name: "Nameless-owner" }, { id: 3, name: "Keep" }] },
+    });
+    const client = new LinkwardenClient(http, config);
+    expect(await client.getCollections()).toEqual([{ id: 3, name: "Keep" }]);
+  });
+
+  it("returns [] when response is missing", async () => {
+    const { http } = fakeHttp({ status: 200, json: {} });
+    const client = new LinkwardenClient(http, config);
+    expect(await client.getCollections()).toEqual([]);
+  });
+
+  it("throws on an error status", async () => {
+    const { http } = fakeHttp({ status: 401, json: { response: "Unauthorized" } });
+    const client = new LinkwardenClient(http, config);
+    await expect(client.getCollections()).rejects.toThrow(/401/);
+  });
+});
+
 describe("LinkwardenClient.createLink", () => {
   it("returns the created link on success", async () => {
     const link = { id: 99, name: "Created", url: "https://example.com" };

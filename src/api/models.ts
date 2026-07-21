@@ -14,6 +14,15 @@ export type Link = Omit<components["schemas"]["Link"], "id"> & { id: number };
 /** A collection as returned across the API. */
 export type Collection = components["schemas"]["Collection"];
 
+/**
+ * The minimal collection shape the plugin needs to populate the default-collection
+ * picker. `name` is what the F3 export sends; `id` disambiguates duplicate names.
+ */
+export interface CollectionSummary {
+  id: number;
+  name: string;
+}
+
 /** The `GET /api/v1/search` response envelope. */
 export type SearchResponse =
   paths["/api/v1/search"]["get"]["responses"]["200"]["content"]["application/json"];

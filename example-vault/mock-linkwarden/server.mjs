@@ -25,6 +25,13 @@ const links = [
   },
 ];
 
+/** @type {Array<{id:number,name:string}>} */
+const collections = [
+  { id: 1, name: "Reading" },
+  { id: 2, name: "Research" },
+  { id: 3, name: "Archive" },
+];
+
 /** @type {Record<number, object[]>} */
 const highlightsByLink = {
   1: [
@@ -98,6 +105,11 @@ const server = createServer(async (req, res) => {
         (l.tags ?? []).some((t) => t.name.toLowerCase().includes(q)),
     );
     return send(res, 200, { message: "ok", data: { nextCursor: null, links: hits } });
+  }
+
+  // GET /api/v1/collections
+  if (req.method === "GET" && path === "/api/v1/collections") {
+    return send(res, 200, { response: collections });
   }
 
   // GET /api/v1/links/:id/highlights

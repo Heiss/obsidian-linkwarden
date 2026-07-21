@@ -37,7 +37,7 @@ export function createTokenStore(
     get(): string {
       if (available) {
         try {
-          const v = secretStorage!.getSecret(secretId);
+          const v = secretStorage.getSecret(secretId);
           if (v) return v;
         } catch {
           // fall through to the plaintext fallback
@@ -49,7 +49,7 @@ export function createTokenStore(
     },
     set(token: string): boolean {
       if (available) {
-        secretStorage!.setSecret(secretId, token);
+        secretStorage.setSecret(secretId, token);
         // Ensure no plaintext copy lingers in the synced settings.
         fallback.set("");
         return true;

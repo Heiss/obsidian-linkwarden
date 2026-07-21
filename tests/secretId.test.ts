@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidSecretId, normalizeSecretId } from "../src/core/secretId";
+import { isValidSecretId, TOKEN_SECRET_ID } from "../src/core/secretId";
 
 describe("isValidSecretId", () => {
   it("accepts lowercase letters, digits and hyphens", () => {
@@ -25,37 +25,8 @@ describe("isValidSecretId", () => {
   });
 });
 
-describe("normalizeSecretId", () => {
-  it("lowercases and turns spaces into hyphens", () => {
-    expect(normalizeSecretId("Linkwarden Token")).toBe("linkwarden-token");
-  });
-
-  it("falls back to linkwarden-token when nothing remains", () => {
-    expect(normalizeSecretId("  ***  ")).toBe("linkwarden-token");
-    expect(normalizeSecretId("")).toBe("linkwarden-token");
-  });
-
-  it("passes an already-valid id through unchanged", () => {
-    expect(normalizeSecretId("linkwarden-token")).toBe("linkwarden-token");
-    expect(normalizeSecretId("abc123")).toBe("abc123");
-  });
-
-  it("collapses repeated separators and drops invalid chars", () => {
-    expect(normalizeSecretId("a__b  c")).toBe("a-b-c");
-  });
-
-  it("converts underscores to hyphens", () => {
-    expect(normalizeSecretId("my_token")).toBe("my-token");
-  });
-
-  it("trims leading and trailing hyphens", () => {
-    expect(normalizeSecretId("--hello--")).toBe("hello");
-    expect(normalizeSecretId("  spaced  ")).toBe("spaced");
-  });
-
-  it("produces a result that is itself a valid secret id", () => {
-    for (const input of ["Weird!! Name??", "___", "MixedCase_123", "  "]) {
-      expect(isValidSecretId(normalizeSecretId(input))).toBe(true);
-    }
+describe("TOKEN_SECRET_ID", () => {
+  it("is itself a valid secret id", () => {
+    expect(isValidSecretId(TOKEN_SECRET_ID)).toBe(true);
   });
 });

@@ -63,9 +63,13 @@
 
             vault="''${root}/example-vault"
 
-            # Obsidian only opens a folder it already knows about, so register
-            # the vault in an *isolated* app config (via XDG_CONFIG_HOME) and mark
-            # it open. This never touches the user's real Obsidian setup.
+            # Run a *fully isolated* Obsidian instance whose config lives in a
+            # throwaway runtime dir inside the repo — never the user's real
+            # Obsidian installation. Obsidian only opens a vault already in its
+            # list, so register this one (marked open) in that isolated config.
+            # The layout matches Electron's userData dir (<config>/obsidian), so
+            # the same obsidian.json works whether we point Obsidian at it via
+            # XDG_CONFIG_HOME (Linux) or --user-data-dir (macOS).
             config_root="''${root}/example-vault/.obsidian-runtime"
             mkdir -p "''${config_root}/obsidian"
             node -e '
@@ -86,8 +90,18 @@
             ' "''${vault}" "''${config_root}/obsidian/obsidian.json"
 
             echo "==> Opening Obsidian on ''${vault}"
+            echo "    (isolated runtime config — your main Obsidian install is untouched)"
             echo "    (First run: accept 'Trust author and enable plugins' if prompted.)"
-            XDG_CONFIG_HOME="''${config_root}" obsidian
+            # `obsidian` here is the nixpkgs GUI launcher (it execs the app
+            # binary, not the `obsidian-cli` remote control). On macOS,
+            # XDG_CONFIG_HOME is ignored, so isolate via Electron's
+            # --user-data-dir instead; a distinct user-data dir also means this
+            # runs alongside — not colliding with — any Obsidian already open.
+            if [ "$(uname)" = "Darwin" ]; then
+              obsidian --user-data-dir="''${config_root}/obsidian"
+            else
+              XDG_CONFIG_HOME="''${config_root}" obsidian
+            fi
           '';
         };
       in {
