@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-21
+
+### Changed
+
+- The settings tab now uses Obsidian's declarative settings API
+  (`getSettingDefinitions()`), so the simple settings (base URL, deep-link
+  target, cache TTL) appear in Obsidian's global settings search. The custom
+  surfaces (access token, connection test, default-collection picker, colour
+  map) keep their behaviour through the `render` escape hatch. Resolves #3.
+- Raised `minAppVersion` to **1.13.0** — the release that introduced the
+  declarative settings API. The deprecated imperative `display()` override has
+  been removed, and `npm run lint` is now free of the
+  `prefer-setting-definitions` and `no-deprecated` warnings.
+
 ## [0.3.0] - 2026-07-21
 
 ### Added
@@ -102,7 +116,8 @@ Initial release.
 - Access token stored in Obsidian's device-local `SecretStorage` (Obsidian
   ≥ 1.11.5), with a plaintext settings fallback where it is unavailable.
 
-[Unreleased]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/Heiss/obsidian-linkwarden/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/Heiss/obsidian-linkwarden/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Heiss/obsidian-linkwarden/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/Heiss/obsidian-linkwarden/releases/tag/0.1.0

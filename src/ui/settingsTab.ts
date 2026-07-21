@@ -5,6 +5,7 @@ import {
   PluginSettingTab,
   SecretComponent,
   Setting,
+  type SettingDefinitionItem,
 } from "obsidian";
 import type LinkwardenPlugin from "../main";
 import type { DeepLinkTarget } from "../core/urls";
@@ -17,65 +18,129 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    const s = this.plugin.settings;
-
-    new Setting(containerEl)
-      .setName("Instance base URL")
-      .setDesc(
-        "Your Linkwarden URL, used for API calls and binding deep links. " +
+  // Declarative settings (Obsidian ≥ 1.13). Simple values are `control`s so they
+  // surface in the settings search; the custom surfaces (token, connection test,
+  // collection picker, color map) use the `render` escape hatch. There is no
+  // `display()` fallback — the plugin's minAppVersion is 1.13.0.
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "Instance base URL",
+        desc:
+          "Your Linkwarden URL, used for API calls and binding deep links. " +
           "Defaults to Linkwarden Cloud; change it if you self-host.",
-      )
-      .addText((t) =>
-        t
-          .setPlaceholder("https://cloud.linkwarden.app")
-          .setValue(s.baseUrl)
-          .onChange(async (v) => {
-            s.baseUrl = v.trim();
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    this.renderTokenSetting(containerEl);
-    this.renderConnectionTest(containerEl);
-
-    new Setting(containerEl)
-      .setName("Deep-link target")
-      .setDesc("Where binding links point. Public collections can be shared without login.")
-      .addDropdown((d) =>
-        d
-          .addOption("links", "/links (detail page)")
-          .addOption("preserved", "/preserved (reader)")
-          .addOption("public/links", "/public/links (no login)")
-          .setValue(s.deepLinkTarget)
-          .onChange(async (v) => {
-            s.deepLinkTarget = v as DeepLinkTarget;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    this.renderCollectionSetting(containerEl);
-
-    new Setting(containerEl)
-      .setName("Highlight cache TTL (minutes)")
-      .setDesc("How long cached highlights stay fresh before a refetch. 0 = always refetch.")
-      .addText((t) =>
-        t
-          .setPlaceholder("60")
-          .setValue(String(s.cacheTtlMinutes))
-          .onChange(async (v) => {
-            const n = Number.parseInt(v, 10);
-            s.cacheTtlMinutes = Number.isFinite(n) && n >= 0 ? n : 60;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    this.renderColorMap(containerEl);
+        control: {
+          type: "text",
+          key: "baseUrl",
+          placeholder: "https://cloud.linkwarden.app",
+        },
+      },
+      {
+        name: "Access token",
+        desc: "Access token used to reach your Linkwarden instance.",
+        render: (setting) => this.renderTokenSetting(setting),
+      },
+      {
+        name: "Connection",
+        desc: "Check that the base URL and access token can reach your Linkwarden instance.",
+        render: (setting) => this.renderConnectionTest(setting),
+      },
+      {
+        name: "Deep-link target",
+        desc: "Where binding links point. Public collections can be shared without login.",
+        control: {
+          type: "dropdown",
+          key: "deepLinkTarget",
+          options: {
+            links: "/links (detail page)",
+            preserved: "/preserved (reader)",
+            "public/links": "/public/links (no login)",
+          },
+        },
+      },
+      {
+        name: "Default collection",
+        desc: 'Target collection for exports. "Unorganized" is Linkwarden\'s default.',
+        render: (setting) => this.renderCollectionSetting(setting),
+      },
+      {
+        name: "Highlight cache TTL (minutes)",
+        desc: "How long cached highlights stay fresh before a refetch. 0 = always refetch.",
+        control: {
+          type: "number",
+          key: "cacheTtlMinutes",
+          placeholder: "60",
+          min: 0,
+        },
+      },
+      {
+        type: "group",
+        heading: "Color mapping",
+        items: [
+          {
+            name: "About color mapping",
+            searchable: false,
+            render: (setting) => {
+              setting
+                .setName("")
+                .setDesc(
+                  "Map each Linkwarden highlight color to a callout type and an optional tag for the insert action.",
+                );
+            },
+          },
+          ...Object.keys(this.plugin.settings.colorMap).map((color) => ({
+            name: color,
+            render: (setting: Setting) => this.renderColorRow(setting, color),
+          })),
+          {
+            name: "Add a color",
+            searchable: false,
+            render: (setting: Setting) => this.renderAddColorRow(setting),
+          },
+        ],
+      },
+    ];
   }
 
-  private renderTokenSetting(containerEl: HTMLElement): void {
+  // Read the value backing a declarative `control`. Only the keys used above are
+  // handled; everything else lives behind a custom `render`.
+  getControlValue(key: string): unknown {
+    const s = this.plugin.settings;
+    switch (key) {
+      case "baseUrl":
+        return s.baseUrl;
+      case "deepLinkTarget":
+        return s.deepLinkTarget;
+      case "cacheTtlMinutes":
+        return s.cacheTtlMinutes;
+      default:
+        return undefined;
+    }
+  }
+
+  // Persist a declarative `control` change into `plugin.settings`.
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const s = this.plugin.settings;
+    switch (key) {
+      case "baseUrl":
+        s.baseUrl = String(value).trim();
+        break;
+      case "deepLinkTarget":
+        s.deepLinkTarget = value as DeepLinkTarget;
+        break;
+      case "cacheTtlMinutes": {
+        const n =
+          typeof value === "number" ? value : Number.parseInt(String(value), 10);
+        s.cacheTtlMinutes = Number.isFinite(n) && n >= 0 ? n : 60;
+        break;
+      }
+      default:
+        return;
+    }
+    await this.plugin.saveSettings();
+  }
+
+  private renderTokenSetting(setting: Setting): void {
     const store = this.plugin.tokenStore;
     const storage = store.hasSecretStorage()
       ? "Stored in Obsidian's device-local SecretStorage — never enters the synced vault. Enter once per device."
@@ -87,9 +152,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       storage,
     );
 
-    const setting = new Setting(containerEl)
-      .setName("Access token")
-      .setDesc(desc);
+    setting.setName("Access token").setDesc(desc);
 
     setting.addComponent((el) => {
       const c = new SecretComponent(this.app, el);
@@ -101,9 +164,9 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     });
   }
 
-  private renderConnectionTest(containerEl: HTMLElement): void {
+  private renderConnectionTest(setting: Setting): void {
     let statusEl!: HTMLElement;
-    const setting = new Setting(containerEl)
+    setting
       .setName("Connection")
       .setDesc(
         "Check that the base URL and access token can reach your Linkwarden instance.",
@@ -136,13 +199,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     el.toggleClass("is-error", ok === false);
   }
 
-  private renderCollectionSetting(containerEl: HTMLElement): void {
+  private renderCollectionSetting(setting: Setting): void {
     const s = this.plugin.settings;
     let dropdown: DropdownComponent | undefined;
 
     const populate = (d: DropdownComponent): void => {
       d.selectEl.empty();
-      d.addOption("", 'Unorganized (Linkwarden default)');
+      d.addOption("", "Unorganized (Linkwarden default)");
       const names = new Set<string>();
       for (const c of this.plugin.collections) {
         if (names.has(c.name)) continue;
@@ -157,7 +220,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       d.setValue(s.defaultCollection);
     };
 
-    new Setting(containerEl)
+    setting
       .setName("Default collection")
       .setDesc('Target collection for exports. "Unorganized" is Linkwarden\'s default.')
       .addDropdown((d) => {
@@ -199,52 +262,48 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderColorMap(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName("Color mapping").setHeading();
-    containerEl.createEl("p", {
-      text: "Map each Linkwarden highlight color to a callout type and an optional tag for the insert action.",
-      cls: "setting-item-description",
-    });
-
+  private renderColorRow(setting: Setting, color: string): void {
     const map = this.plugin.settings.colorMap;
-    for (const color of Object.keys(map)) {
-      const rule = map[color];
-      new Setting(containerEl)
-        .setName(color)
-        .addText((t) =>
-          t
-            .setPlaceholder("Callout type (quote)")
-            .setValue(rule.callout)
-            .onChange(async (v) => {
-              rule.callout = v.trim() || "quote";
-              await this.plugin.saveSettings();
-            }),
-        )
-        .addText((t) =>
-          t
-            .setPlaceholder("Tag (optional)")
-            .setValue(rule.tag ?? "")
-            .onChange(async (v) => {
-              const tag = v.trim().replace(/^#/, "");
-              if (tag) rule.tag = tag;
-              else delete rule.tag;
-              await this.plugin.saveSettings();
-            }),
-        )
-        .addExtraButton((b) =>
-          b
-            .setIcon("trash")
-            .setTooltip("Remove")
-            .onClick(async () => {
-              delete map[color];
-              await this.plugin.saveSettings();
-              this.display();
-            }),
-        );
-    }
+    const rule = map[color];
+    setting
+      .setName(color)
+      .addText((t) =>
+        t
+          .setPlaceholder("Callout type (quote)")
+          .setValue(rule.callout)
+          .onChange(async (v) => {
+            rule.callout = v.trim() || "quote";
+            await this.plugin.saveSettings();
+          }),
+      )
+      .addText((t) =>
+        t
+          .setPlaceholder("Tag (optional)")
+          .setValue(rule.tag ?? "")
+          .onChange(async (v) => {
+            const tag = v.trim().replace(/^#/, "");
+            if (tag) rule.tag = tag;
+            else delete rule.tag;
+            await this.plugin.saveSettings();
+          }),
+      )
+      .addExtraButton((b) =>
+        b
+          .setIcon("trash")
+          .setTooltip("Remove")
+          .onClick(async () => {
+            delete map[color];
+            await this.plugin.saveSettings();
+            // Structural change — rebuild the declarative tab so the row is gone.
+            this.update();
+          }),
+      );
+  }
 
+  private renderAddColorRow(setting: Setting): void {
+    const map = this.plugin.settings.colorMap;
     let newColor = "";
-    new Setting(containerEl)
+    setting
       .setName("Add a color")
       .addText((t) =>
         t.setPlaceholder("Color value from Linkwarden").onChange((v) => {
@@ -259,7 +318,8 @@ export class LinkwardenSettingTab extends PluginSettingTab {
             if (!newColor || map[newColor]) return;
             map[newColor] = { callout: "quote" };
             await this.plugin.saveSettings();
-            this.display();
+            // Structural change — rebuild the declarative tab to show the new row.
+            this.update();
           }),
       );
   }
