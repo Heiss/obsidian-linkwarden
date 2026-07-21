@@ -15,11 +15,14 @@ type Suggestion =
  * no match, offers to archive it on the fly (F3 integration).
  */
 export class LinkPicker extends SuggestModal<Suggestion> {
+  /** Recent links shown for the empty query, fetched once per modal. */
+  private recentCache: Link[] | null = null;
+
   constructor(
     private readonly plugin: LinkwardenPlugin,
     private readonly client: LinkwardenClient,
     private readonly onResolved: (link: Link) => void,
-    placeholder = "Search Linkwarden…",
+    placeholder = "Search Linkwarden… (or pick a recent link)",
   ) {
     super(plugin.app);
     this.setPlaceholder(placeholder);
@@ -27,7 +30,17 @@ export class LinkPicker extends SuggestModal<Suggestion> {
 
   async getSuggestions(query: string): Promise<Suggestion[]> {
     const q = query.trim();
-    if (!q) return [];
+    // Empty query → seed with the most recent links so the user can pick one
+    // without typing; any input switches to a live search.
+    if (!q) {
+      try {
+        const links = await this.recentLinks();
+        return links.map((link) => ({ kind: "link", link }));
+      } catch (e) {
+        new Notice(`Linkwarden fetch failed: ${errorText(e)}`);
+        return [];
+      }
+    }
     let links: Link[] = [];
     try {
       links = await this.client.search(q);
@@ -40,6 +53,11 @@ export class LinkPicker extends SuggestModal<Suggestion> {
       out.push({ kind: "archive", url: q });
     }
     return out;
+  }
+
+  private async recentLinks(): Promise<Link[]> {
+    if (!this.recentCache) this.recentCache = await this.client.recent(10);
+    return this.recentCache;
   }
 
   renderSuggestion(item: Suggestion, el: HTMLElement): void {

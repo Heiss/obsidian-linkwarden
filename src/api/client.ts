@@ -16,6 +16,15 @@ export interface ClientConfig {
   token: string;
 }
 
+/** Outcome of a `checkConnection` probe. */
+export interface ConnectionCheck {
+  ok: boolean;
+  /** HTTP status, when a response was received (absent on transport failure). */
+  status?: number;
+  /** Human-readable summary suitable for showing in settings. */
+  message: string;
+}
+
 /** Outcome of a `createLink` call. */
 export interface CreateLinkResult {
   /** The created (or existing) link, when known. */
@@ -114,6 +123,64 @@ export class LinkwardenClient {
       }
     }
     return out;
+  }
+
+  /**
+   * Probe the instance with the current base URL + token and classify the
+   * result: reachable + authorized, an auth failure, an unexpected status, or a
+   * transport failure (bad URL / offline). Never throws.
+   */
+  async checkConnection(): Promise<ConnectionCheck> {
+    let res: HttpResponse;
+    try {
+      res = await this.http({
+        url: this.url(`/api/v1/collections`),
+        method: "GET",
+        headers: this.authHeaders(),
+      });
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      return { ok: false, message: `Could not reach ${this.base} — ${detail}` };
+    }
+    if (isSuccess(res.status)) {
+      return { ok: true, status: res.status, message: "Connected." };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        status: res.status,
+        message: `Reached ${this.base}, but the token was rejected (HTTP ${res.status}). Check the access token.`,
+      };
+    }
+    return {
+      ok: false,
+      status: res.status,
+      message: `Unexpected response from ${this.base} (HTTP ${res.status}). Check the base URL.`,
+    };
+  }
+
+  /**
+   * GET /api/v1/search with no query → the most recent links (Linkwarden's
+   * default sort is newest-first), capped at `limit`. Used to seed the picker
+   * so the user can pick a source without typing.
+   */
+  async recent(limit = 10): Promise<Link[]> {
+    const res = await this.http({
+      url: this.url(`/api/v1/search`),
+      method: "GET",
+      headers: this.authHeaders(),
+    });
+
+    if (!isSuccess(res.status)) {
+      throw new Error(
+        `Linkwarden recent failed (HTTP ${res.status}): ${errorMessage(res)}`,
+      );
+    }
+
+    const body = readJson(res) as
+      | { data?: { links?: Link[] } }
+      | undefined;
+    return (body?.data?.links ?? []).slice(0, limit);
   }
 
   /** GET /api/v1/links/{id}/highlights — returns the `response` array, or `[]`. */

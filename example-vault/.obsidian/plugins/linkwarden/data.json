@@ -5,12 +5,82 @@
     "deepLinkTarget": "links",
     "defaultCollection": "Reading",
     "colorMap": {
-      "yellow": { "callout": "quote" },
-      "blue": { "callout": "info", "tag": "definition" },
-      "red": { "callout": "warning", "tag": "objection" },
-      "green": { "callout": "success", "tag": "idea" }
+      "yellow": {
+        "callout": "quote"
+      },
+      "blue": {
+        "callout": "info",
+        "tag": "definition"
+      },
+      "red": {
+        "callout": "warning",
+        "tag": "objection"
+      },
+      "green": {
+        "callout": "success",
+        "tag": "idea"
+      }
     },
     "cacheTtlMinutes": 60
   },
-  "cache": {}
+  "cache": {
+    "1": {
+      "highlights": [
+        {
+          "id": 1571,
+          "linkId": 1,
+          "userId": 1,
+          "color": "yellow",
+          "text": "Retrieval-augmented generation grounds a model's output in an external corpus.",
+          "comment": "This is the core definition to remember.",
+          "startOffset": 10,
+          "endOffset": 92,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": 1572,
+          "linkId": 1,
+          "userId": 1,
+          "color": "blue",
+          "text": "A retriever selects passages; a reader conditions on them.",
+          "comment": null,
+          "startOffset": 120,
+          "endOffset": 178,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": 1573,
+          "linkId": 1,
+          "userId": 1,
+          "color": "red",
+          "text": "Naive chunking can split a claim from its evidence.",
+          "comment": "Objection: watch chunk boundaries.",
+          "startOffset": 200,
+          "endOffset": 251,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "fetchedAt": 1784660749816
+    },
+    "2": {
+      "highlights": [
+        {
+          "id": 2001,
+          "linkId": 2,
+          "userId": 1,
+          "color": "green",
+          "text": "Wholeness is created by centers that reinforce one another.",
+          "comment": "Idea: apply to note structure.",
+          "startOffset": 5,
+          "endOffset": 63,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "fetchedAt": 1784660749818
+    }
+  }
 }

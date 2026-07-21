@@ -30,13 +30,28 @@ the id in the href *is* the binding (single source of truth).
 ## Setup
 
 1. In Linkwarden, create an access token under **Settings → Access Tokens**.
-2. In Obsidian, open **Settings → Linkwarden** and set your instance
-   base URL and paste the token. The token is stored via Obsidian's
-   **SecretStorage** (device-local, OS-backed) — it never enters the synced
-   vault. Requires Obsidian **≥ 1.12.7**; on Linux an OS secret backend
-   (kwallet/libsecret) must be available.
+2. In Obsidian, open **Settings → Linkwarden** and paste the token. The base URL
+   defaults to **Linkwarden Cloud** (`https://cloud.linkwarden.app`) — change it
+   if you self-host. The token is stored via Obsidian's **SecretStorage**
+   (device-local, OS-backed) — it never enters the synced vault. Requires
+   Obsidian **≥ 1.12.7**; on Linux an OS secret backend (kwallet/libsecret) must
+   be available.
 3. (Optional) Set a default target collection, the deep-link target
    (`/links` vs `/preserved`), the color map, and the cache TTL.
+
+## Network use & privacy
+
+This plugin communicates with exactly one remote service: **your Linkwarden
+instance** (Linkwarden Cloud by default, or your self-hosted URL).
+
+- No request is made until you enter an access token — without a token the plugin
+  performs no network activity.
+- Sent only to your Linkwarden instance: your access token (as a `Bearer`
+  header), the search queries you type in the picker, the URLs you choose to
+  archive, and the ids of links whose highlights the panel loads. All requests go
+  through Obsidian's `requestUrl`.
+- The plugin collects **no telemetry** and contacts **no other servers**. Using
+  it requires an account on a Linkwarden instance.
 
 ## Development
 

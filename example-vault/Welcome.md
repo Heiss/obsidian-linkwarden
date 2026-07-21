@@ -34,3 +34,16 @@ Try this:
    source under cursor* (or the toolbar link icon).
 
 <!-- Insert quotes below this line: -->
+
+> [!warning] [On Retrieval-Augmented Generation](http://localhost:8788/links/1) #objection
+> Naive chunking can split a claim from its evidence.
+>
+> **Note:** Objection: watch chunk boundaries. ^lw-1573
+
+> [!info] [On Retrieval-Augmented Generation](http://localhost:8788/links/1) #definition
+> A retriever selects passages; a reader conditions on them. ^lw-1572
+
+> [!quote] [On Retrieval-Augmented Generation](http://localhost:8788/links/1)
+> Retrieval-augmented generation grounds a model's output in an external corpus.
+>
+> **Note:** This is the core definition to remember. ^lw-1571

@@ -24,10 +24,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Instance base URL")
-      .setDesc("Your Linkwarden URL, used for API calls and binding deep links.")
+      .setDesc(
+        "Your Linkwarden URL, used for API calls and binding deep links. " +
+          "Defaults to Linkwarden Cloud; change it if you self-host.",
+      )
       .addText((t) =>
         t
-          .setPlaceholder("https://links.example.tld")
+          .setPlaceholder("https://cloud.linkwarden.app")
           .setValue(s.baseUrl)
           .onChange(async (v) => {
             s.baseUrl = v.trim();
@@ -36,6 +39,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       );
 
     this.renderTokenSetting(containerEl);
+    this.renderConnectionTest(containerEl);
 
     new Setting(containerEl)
       .setName("Deep-link target")
@@ -95,6 +99,41 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       });
       return c;
     });
+  }
+
+  private renderConnectionTest(containerEl: HTMLElement): void {
+    let statusEl!: HTMLElement;
+    const setting = new Setting(containerEl)
+      .setName("Connection")
+      .setDesc(
+        "Check that the base URL and access token can reach your Linkwarden instance.",
+      )
+      .addButton((b) =>
+        b.setButtonText("Test connection").onClick(async () => {
+          const client = this.plugin.getClient();
+          if (!client) {
+            this.setConnStatus(statusEl, false, "Set the base URL and access token first.");
+            return;
+          }
+          b.setDisabled(true).setButtonText("Testing…");
+          this.setConnStatus(statusEl, null, "Testing…");
+          const result = await client.checkConnection();
+          b.setDisabled(false).setButtonText("Test connection");
+          this.setConnStatus(statusEl, result.ok, result.message);
+        }),
+      );
+    statusEl = setting.descEl.createDiv({ cls: "lw-conn-status" });
+  }
+
+  /** Update the inline connection-test result line. `ok === null` = in progress. */
+  private setConnStatus(
+    el: HTMLElement,
+    ok: boolean | null,
+    message: string,
+  ): void {
+    el.setText(message);
+    el.toggleClass("is-ok", ok === true);
+    el.toggleClass("is-error", ok === false);
   }
 
   private renderCollectionSetting(containerEl: HTMLElement): void {

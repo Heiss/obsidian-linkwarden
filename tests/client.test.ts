@@ -73,6 +73,79 @@ describe("LinkwardenClient.getHighlights", () => {
   });
 });
 
+describe("LinkwardenClient.checkConnection", () => {
+  it("reports ok on a 2xx", async () => {
+    const { http, lastRequest } = fakeHttp({ status: 200, json: { response: [] } });
+    const client = new LinkwardenClient(http, config);
+    const result = await client.checkConnection();
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe(200);
+    expect(lastRequest()!.url).toBe(
+      "https://links.example.tld/api/v1/collections",
+    );
+  });
+
+  it("flags an auth failure on 401/403 without throwing", async () => {
+    const { http } = fakeHttp({ status: 401, json: { response: "Unauthorized" } });
+    const client = new LinkwardenClient(http, config);
+    const result = await client.checkConnection();
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(401);
+    expect(result.message).toMatch(/token/i);
+  });
+
+  it("flags an unexpected status as a base-URL problem", async () => {
+    const { http } = fakeHttp({ status: 404, text: "Not Found" });
+    const client = new LinkwardenClient(http, config);
+    const result = await client.checkConnection();
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/base URL/i);
+  });
+
+  it("reports a transport failure without throwing", async () => {
+    const http = async () => {
+      throw new Error("getaddrinfo ENOTFOUND");
+    };
+    const client = new LinkwardenClient(http, config);
+    const result = await client.checkConnection();
+    expect(result.ok).toBe(false);
+    expect(result.status).toBeUndefined();
+    expect(result.message).toMatch(/Could not reach/i);
+  });
+});
+
+describe("LinkwardenClient.recent", () => {
+  it("hits search with no query and returns links, capped at the limit", async () => {
+    const links = Array.from({ length: 15 }, (_, i) => ({ id: i + 1 }));
+    const { http, lastRequest } = fakeHttp({
+      status: 200,
+      json: { data: { links } },
+    });
+    const client = new LinkwardenClient(http, config);
+
+    const result = await client.recent(10);
+
+    expect(result).toHaveLength(10);
+    expect(result[0]).toEqual({ id: 1 });
+    const req = lastRequest()!;
+    expect(req.method).toBe("GET");
+    expect(req.url).toBe("https://links.example.tld/api/v1/search");
+    expect(req.headers?.Authorization).toBe("Bearer secret-token");
+  });
+
+  it("returns [] when the envelope is missing data", async () => {
+    const { http } = fakeHttp({ status: 200, json: {} });
+    const client = new LinkwardenClient(http, config);
+    expect(await client.recent()).toEqual([]);
+  });
+
+  it("throws on an error status", async () => {
+    const { http } = fakeHttp({ status: 500, json: { response: "boom" } });
+    const client = new LinkwardenClient(http, config);
+    await expect(client.recent()).rejects.toThrow(/500/);
+  });
+});
+
 describe("LinkwardenClient.getCollections", () => {
   it("returns id/name pairs and hits the right url", async () => {
     const { http, lastRequest } = fakeHttp({

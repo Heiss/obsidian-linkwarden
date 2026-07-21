@@ -12,6 +12,23 @@
   text-align: center;
 }
 
+/* Inline "Test connection" result line under the setting description. */
+.lw-conn-status:empty {
+  display: none;
+}
+
+.lw-conn-status {
+  margin-top: var(--size-4-1);
+}
+
+.lw-conn-status.is-ok {
+  color: var(--color-green);
+}
+
+.lw-conn-status.is-error {
+  color: var(--color-red);
+}
+
 .lw-source {
   margin-bottom: var(--size-4-4);
 }

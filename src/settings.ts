@@ -21,7 +21,8 @@ export interface LinkwardenSettings {
 }
 
 export const DEFAULT_SETTINGS: LinkwardenSettings = {
-  baseUrl: "",
+  // Official Linkwarden Cloud; self-hosters overwrite this with their instance.
+  baseUrl: "https://cloud.linkwarden.app",
   tokenFallback: "",
   deepLinkTarget: "links",
   defaultCollection: "",
