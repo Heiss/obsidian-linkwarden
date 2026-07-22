@@ -1,15 +1,29 @@
-// Plugin settings shape and defaults. Sensitive values (the access token) are
-// NOT stored here — the token lives in SecretStorage under a fixed id (see D6).
+// Plugin settings shape and defaults. The access-token *value* is NOT stored
+// here — it lives in Obsidian's SecretStorage (see D6). Settings hold only the
+// secret's *name* (`tokenSecretId`, what `SecretComponent` manages), plus a
+// plaintext fallback for Obsidian versions without SecretStorage.
 // Kept obsidian-free so the defaults/merge logic is unit-testable.
 
 import type { DeepLinkTarget } from "./core/urls";
+import {
+  EMPTY_TOKEN,
+  TOKEN_SECRET_ID,
+  type SecretName,
+  type TokenValue,
+} from "./core/secretId";
 import { DEFAULT_COLOR_MAP, type ColorMap } from "./core/colorMap";
 
 export interface LinkwardenSettings {
   /** Instance base URL — used for API calls *and* as the host of deep links. */
   baseUrl: string;
+  /**
+   * Name of the SecretStorage secret holding the access token. This is what
+   * `SecretComponent` reads/writes (the component owns the value; we only keep
+   * the name). The token value is fetched at runtime via `getSecret(name)`.
+   */
+  tokenSecretId: SecretName;
   /** Plaintext token fallback for Obsidian < 1.11.5 (empty when SecretStorage). */
-  tokenFallback: string;
+  tokenFallback: TokenValue;
   /** Where binding deep links point. */
   deepLinkTarget: DeepLinkTarget;
   /** Default target collection name for the F3 export (empty → Unorganized). */
@@ -23,7 +37,8 @@ export interface LinkwardenSettings {
 export const DEFAULT_SETTINGS: LinkwardenSettings = {
   // Official Linkwarden Cloud; self-hosters overwrite this with their instance.
   baseUrl: "https://cloud.linkwarden.app",
-  tokenFallback: "",
+  tokenSecretId: TOKEN_SECRET_ID,
+  tokenFallback: EMPTY_TOKEN,
   deepLinkTarget: "links",
   defaultCollection: "",
   colorMap: DEFAULT_COLOR_MAP,

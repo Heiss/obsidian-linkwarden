@@ -192,10 +192,16 @@ Linkwarden user settings so the export duplicate protection works.
   - **Consequence:** the secret is device-local and does not sync → enter it once
     per device (desired for a token). Non-sensitive settings keep syncing
     normally.
-  - **Pattern:** store the token under a fixed secret id (`linkwarden-token`,
-    itself a valid `[a-z0-9-]+`), fetch the value at runtime via `getSecret`.
-    The id is a constant, not a user-facing setting. Optional `data.json`
-    fallback for Obsidian < 1.11.5.
+  - **Pattern:** the settings UI uses Obsidian's `SecretComponent`, which *owns
+    the secret value* — its `setValue`/`onChange` deal in the secret **name**,
+    not the token. So settings persist only the secret name (`tokenSecretId`,
+    default `linkwarden-token`, itself a valid `[a-z0-9-]+`); the token value is
+    fetched at runtime via `getSecret(tokenSecretId)`. The name defaults to a
+    constant but is whatever the component reports, so a user-selected/existing
+    secret is honoured. Optional plaintext `data.json` fallback
+    (`tokenFallback`) for Obsidian < 1.11.5 or a missing OS secret backend.
+    (Regression fixed: an earlier build fed the raw token into `setValue` and
+    stored the component's returned *name* as the token → `Bearer <name>` → 401.)
 
 ## Open decisions
 
