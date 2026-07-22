@@ -16,7 +16,6 @@ import { LinkPicker } from "./ui/picker";
 import { ExportModal } from "./ui/exportModal";
 import { runRelinkCommand } from "./ui/relink";
 import { formatBindingLink, linkLabel } from "./core/binding";
-import { TOKEN_SECRET_ID } from "./core/secretId";
 
 interface PersistedData {
   settings?: Partial<LinkwardenSettings>;
@@ -36,7 +35,7 @@ export default class LinkwardenPlugin extends Plugin {
     this.cache = new HighlightCache(this.settings.cacheTtlMinutes, data?.cache);
     this.tokenStore = createTokenStore(
       this.app,
-      TOKEN_SECRET_ID,
+      () => this.settings.tokenSecretId,
       {
         get: () => this.settings.tokenFallback,
         set: (v) => {

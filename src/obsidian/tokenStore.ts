@@ -3,21 +3,37 @@
 // in settings for Obsidian < 1.11.5 where SecretStorage is unavailable.
 
 import type { App } from "obsidian";
-import { isValidSecretId } from "../core/secretId";
+import {
+  asTokenValue,
+  isValidSecretId,
+  type SecretName,
+  type TokenValue,
+} from "../core/secretId";
 
 export interface TokenStore {
   /** Whether the OS-backed SecretStorage is available on this device. */
   hasSecretStorage(): boolean;
-  /** Read the token, or "" if none. */
-  get(): string;
-  /** Persist the token. Returns true if it went to SecretStorage. */
-  set(token: string): boolean;
+  /**
+   * Read the token *value*, or "" if none. When SecretStorage is available the
+   * value is resolved from the configured secret name via `getSecret`; the
+   * `SecretComponent` in settings owns writing that value. Otherwise the
+   * plaintext fallback is used.
+   */
+  get(): TokenValue;
+  /**
+   * Persist the plaintext fallback token. Only used on the no-SecretStorage
+   * path — when SecretStorage is available the `SecretComponent` writes the
+   * value itself and settings hold only the secret name.
+   */
+  setFallback(token: TokenValue): void;
 }
 
 export function createTokenStore(
   app: App,
-  secretId: string,
-  fallback: { get(): string; set(value: string): void },
+  // Reads the current secret name from settings (user-selectable via
+  // SecretComponent), so the store always resolves against the live value.
+  secretId: () => SecretName,
+  fallback: { get(): TokenValue; set(value: TokenValue): void },
 ): TokenStore {
   const secretStorage = (app as App & { secretStorage?: unknown })
     .secretStorage as
@@ -28,34 +44,29 @@ export function createTokenStore(
     | undefined;
 
   const available =
-    !!secretStorage &&
-    typeof secretStorage.getSecret === "function" &&
-    isValidSecretId(secretId);
+    !!secretStorage && typeof secretStorage.getSecret === "function";
 
   return {
     hasSecretStorage: () => available,
-    get(): string {
+    get(): TokenValue {
       if (available) {
-        try {
-          const v = secretStorage.getSecret(secretId);
-          if (v) return v;
-        } catch {
-          // fall through to the plaintext fallback
+        const id = secretId();
+        if (isValidSecretId(id)) {
+          try {
+            const v = secretStorage.getSecret(id);
+            // Boundary: Obsidian hands back a plain string; it's the token value.
+            if (v) return asTokenValue(v);
+          } catch {
+            // fall through to the plaintext fallback
+          }
         }
       }
       // Fallback covers Obsidian < 1.11.5 and a not-yet-populated secret
       // (e.g. the preconfigured demo vault).
       return fallback.get();
     },
-    set(token: string): boolean {
-      if (available) {
-        secretStorage.setSecret(secretId, token);
-        // Ensure no plaintext copy lingers in the synced settings.
-        fallback.set("");
-        return true;
-      }
+    setFallback(token: TokenValue): void {
       fallback.set(token);
-      return false;
     },
   };
 }

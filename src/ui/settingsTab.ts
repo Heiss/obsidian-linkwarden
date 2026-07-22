@@ -4,12 +4,13 @@ import {
   Notice,
   PluginSettingTab,
   requireApiVersion,
-  SecretComponent,
   Setting,
   type SettingDefinitionItem,
 } from "obsidian";
 import type LinkwardenPlugin from "../main";
 import type { DeepLinkTarget } from "../core/urls";
+import { asTokenValue } from "../core/secretId";
+import { mountSecretName } from "../obsidian/secretComponent";
 
 // Dual-support settings tab (Obsidian migration guide "Path B"). On 1.13+
 // Obsidian renders declaratively from `getSettingDefinitions()` and skips
@@ -226,25 +227,52 @@ export class LinkwardenSettingTab extends PluginSettingTab {
 
   private renderTokenSetting(setting: Setting): void {
     const store = this.plugin.tokenStore;
-    const storage = store.hasSecretStorage()
-      ? "Stored in Obsidian's device-local SecretStorage — never enters the synced vault. Enter once per device."
-      : "SecretStorage unavailable (needs Obsidian ≥ 1.11.5, Linux needs kwallet/libsecret). Falls back to storing in the vault settings.";
+    const s = this.plugin.settings;
+    const generate =
+      "Generate one in Linkwarden under Settings → Access Tokens → Create Access Token. ";
 
+    setting.setName("Access token");
+
+    if (store.hasSecretStorage()) {
+      // SecretComponent owns the secret *value*; we persist only its *name*
+      // (`tokenSecretId`) and resolve the value at runtime via getSecret. Do NOT
+      // treat the component's value as the raw token — its setValue/onChange
+      // deal in the secret name, not the token.
+      const desc = new DocumentFragment();
+      desc.append(
+        generate,
+        "Stored in Obsidian's device-local SecretStorage — never enters the synced vault. Enter once per device.",
+      );
+      setting.setDesc(desc);
+
+      setting.addComponent((el) =>
+        mountSecretName(this.app, el, s.tokenSecretId, (name) => {
+          s.tokenSecretId = name;
+          // No stale plaintext copy once a real secret is in use.
+          store.setFallback(asTokenValue(""));
+          void this.plugin.saveSettings();
+        }),
+      );
+      return;
+    }
+
+    // No SecretStorage (Obsidian < 1.11.5, or no OS secret backend on Linux):
+    // fall back to a masked plaintext value kept in the vault settings.
     const desc = new DocumentFragment();
     desc.append(
-      "Generate one in Linkwarden under Settings → Access Tokens → Create Access Token, then paste it here. ",
-      storage,
+      generate,
+      "SecretStorage unavailable (needs Obsidian ≥ 1.11.5, Linux needs kwallet/libsecret). Falls back to storing in the vault settings.",
     );
+    setting.setDesc(desc);
 
-    setting.setName("Access token").setDesc(desc);
-
-    setting.addComponent((el) => {
-      const c = new SecretComponent(this.app, el);
-      c.setValue(store.get());
-      c.onChange((v) => {
-        store.set(v.trim());
-      });
-      return c;
+    setting.addText((t) => {
+      t.inputEl.type = "password";
+      t.setPlaceholder("Access token")
+        .setValue(store.get())
+        .onChange((v) => {
+          // Boundary: the user typed the raw token value.
+          store.setFallback(asTokenValue(v.trim()));
+        });
     });
   }
 
