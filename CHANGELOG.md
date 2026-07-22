@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-07-22
+
+### Added
+
+- **Multilingual UI (EN/DE):** every user-facing string now routes through a
+  `t()` lookup backed by a per-locale dictionary. English (`src/i18n/en.ts`) is
+  the typed source of truth; German (`src/i18n/de.ts`) is enforced to mirror it.
+  The active locale comes from Obsidian's `getLanguage()`, falling back to
+  English. The dictionaries stay Obsidian-free and unit-testable. (#7)
+- A Usage / onboarding section in the README covering the ribbon icon, the
+  highlight panel, and the commands, plus a demo GIF. (#6)
+
+## [0.3.2] - 2026-07-22
+
+### Fixed
+
+- **Access token wiring (401 on every request).** The access-token setting
+  misused Obsidian's `SecretComponent`: it fed the raw token into `setValue()`
+  and stored the component's returned secret *name* as if it were the token, so
+  `getClient()` sent `Bearer <name>` and every request failed with HTTP 401
+  ("Check the access token"). Settings now persist only the secret *name*
+  (`tokenSecretId`, default `linkwarden-token`) and resolve the token value at
+  runtime via `getSecret(name)`, with a masked plaintext fallback where
+  SecretStorage is unavailable. To prevent a repeat, the two strings are branded
+  as distinct nominal types (`SecretName` vs `TokenValue`) and `SecretComponent`
+  is routed through a typed wrapper (`mountSecretName`), so the original mistake
+  no longer type-checks. Adds `tests/tokenStore.test.ts`; updates D6 in the
+  spec. (#4)
+
 ## [0.3.1] - 2026-07-21
 
 ### Added
@@ -116,7 +145,9 @@ Initial release.
 - Access token stored in Obsidian's device-local `SecretStorage` (Obsidian
   ≥ 1.11.5), with a plaintext settings fallback where it is unavailable.
 
-[Unreleased]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.3...HEAD
+[0.3.3]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.2...0.3.3
+[0.3.2]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/Heiss/obsidian-linkwarden/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/Heiss/obsidian-linkwarden/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Heiss/obsidian-linkwarden/compare/0.1.0...0.2.0
