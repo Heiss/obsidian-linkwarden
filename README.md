@@ -2,6 +2,10 @@
 
 # Linkwarden for Obsidian
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Linkwarden for Obsidian — link a source, read its highlights, insert a quote, and archive a URL" width="560">
+</p>
+
 **The [Linkwarden](https://linkwarden.app) plugin for Obsidian.** Search and link
 your saved links, archive URLs to Linkwarden, and show their highlights as a
 **living reading aid** next to the active note — without materializing them as
@@ -10,24 +14,6 @@ files. Guiding principle: **read in Linkwarden, write in Obsidian.**
 No sync engine, no merge/clobber problem. A link is bound to Linkwarden by a
 single Markdown link whose target is the instance deep URL (`<base>/links/<id>`);
 the id in the href *is* the binding (single source of truth).
-
-<!--
-  TODO(demo GIF): record the complete flow and drop the file at
-  docs/assets/demo.gif, then uncomment the <p> block below.
-
-  Suggested shot list (one continuous ~20s capture):
-    1. Click the highlighter ribbon icon → the highlight panel opens on the right.
-    2. Run "Linkwarden: Link a source (search)", type a query, pick a result →
-       a bound Markdown link is inserted at the cursor.
-    3. The panel refreshes and shows that source's highlights.
-    4. Click "Insert as quote" on a highlight → it lands as a callout in the note.
-    5. Run "Linkwarden: Export note links", tick a URL, Archive → the bare URL is
-       rewritten to a binding link.
-
-<p align="center">
-  <img src="docs/assets/demo.gif" alt="Linkwarden for Obsidian — link a source, read its highlights, insert a quote, and archive a URL" width="720">
-</p>
--->
 
 ## Usage
 
