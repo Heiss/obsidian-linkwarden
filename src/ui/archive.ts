@@ -2,6 +2,7 @@ import { Notice } from "obsidian";
 import type LinkwardenPlugin from "../main";
 import type { LinkwardenClient } from "../api/client";
 import type { CreateLinkBody, Link } from "../api/models";
+import { t } from "../i18n";
 
 /**
  * Archive a URL to Linkwarden and resolve to its link (D5): a normal create, or
@@ -24,13 +25,13 @@ export async function resolveArchive(
       const matches = await client.search(url);
       const exact = matches.find((m) => m.url === url) ?? matches[0];
       if (exact) return exact;
-      new Notice("Linkwarden: link exists but could not be located.");
+      new Notice(t().archive.existsButNotLocated);
       return null;
     }
-    new Notice("Linkwarden: unexpected response while archiving.");
+    new Notice(t().archive.unexpectedResponse);
     return null;
   } catch (e) {
-    new Notice(`Linkwarden archive failed: ${errorText(e)}`);
+    new Notice(t().archive.failed(errorText(e)));
     return null;
   }
 }

@@ -4,6 +4,7 @@ import type { LinkwardenClient } from "../api/client";
 import type { Link } from "../api/models";
 import { linkLabel } from "../core/binding";
 import { resolveArchive } from "./archive";
+import { t } from "../i18n";
 
 type Suggestion =
   | { kind: "link"; link: Link }
@@ -22,7 +23,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
     private readonly plugin: LinkwardenPlugin,
     private readonly client: LinkwardenClient,
     private readonly onResolved: (link: Link) => void,
-    placeholder = "Search Linkwarden… (or pick a recent link)",
+    placeholder = t().picker.searchPlaceholder,
   ) {
     super(plugin.app);
     this.setPlaceholder(placeholder);
@@ -37,7 +38,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
         const links = await this.recentLinks();
         return links.map((link) => ({ kind: "link", link }));
       } catch (e) {
-        new Notice(`Linkwarden fetch failed: ${errorText(e)}`);
+        new Notice(t().picker.fetchFailed(errorText(e)));
         return [];
       }
     }
@@ -45,7 +46,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
     try {
       links = await this.client.search(q);
     } catch (e) {
-      new Notice(`Linkwarden search failed: ${errorText(e)}`);
+      new Notice(t().picker.searchFailed(errorText(e)));
       return [];
     }
     const out: Suggestion[] = links.map((link) => ({ kind: "link", link }));
@@ -62,9 +63,9 @@ export class LinkPicker extends SuggestModal<Suggestion> {
 
   renderSuggestion(item: Suggestion, el: HTMLElement): void {
     if (item.kind === "archive") {
-      el.createDiv({ text: `Archive “${item.url}” to Linkwarden` });
+      el.createDiv({ text: t().picker.archiveSuggestion(item.url) });
       el.createEl("small", {
-        text: "No match found — create a new link.",
+        text: t().picker.noMatchCreateNew,
         cls: "lw-suggest-sub",
       });
       return;
@@ -90,7 +91,7 @@ export class LinkPicker extends SuggestModal<Suggestion> {
   private async archiveAndResolve(url: string): Promise<void> {
     const link = await resolveArchive(this.plugin, this.client, url);
     if (link) {
-      new Notice(`Archived to Linkwarden (#${link.id}).`);
+      new Notice(t().picker.archived(link.id));
       this.onResolved(link);
     }
   }

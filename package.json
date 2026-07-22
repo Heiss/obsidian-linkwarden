@@ -1,6 +1,6 @@
 {
   "name": "obsidian-linkwarden",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "The Linkwarden plugin for Obsidian: search/link saved links, archive URLs, show highlights beside notes, and insert highlights as quotes.",
   "main": "main.js",
   "scripts": {

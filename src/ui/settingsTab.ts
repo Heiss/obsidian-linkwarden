@@ -11,6 +11,7 @@ import type LinkwardenPlugin from "../main";
 import type { DeepLinkTarget } from "../core/urls";
 import { asTokenValue } from "../core/secretId";
 import { mountSecretName } from "../obsidian/secretComponent";
+import { t } from "../i18n";
 
 // Dual-support settings tab (Obsidian migration guide "Path B"). On 1.13+
 // Obsidian renders declaratively from `getSettingDefinitions()` and skips
@@ -31,12 +32,11 @@ export class LinkwardenSettingTab extends PluginSettingTab {
   // Declarative definitions (Obsidian ≥ 1.13). Returning a non-empty array makes
   // Obsidian bypass display() on 1.13+.
   getSettingDefinitions(): SettingDefinitionItem[] {
+    const s = t().settings;
     return [
       {
-        name: "Instance base URL",
-        desc:
-          "Your Linkwarden URL, used for API calls and binding deep links. " +
-          "Defaults to Linkwarden Cloud; change it if you self-host.",
+        name: s.baseUrlName,
+        desc: s.baseUrlDesc,
         control: {
           type: "text",
           key: "baseUrl",
@@ -44,36 +44,36 @@ export class LinkwardenSettingTab extends PluginSettingTab {
         },
       },
       {
-        name: "Access token",
-        desc: "Access token used to reach your Linkwarden instance.",
+        name: s.tokenName,
+        desc: s.tokenDeclarativeDesc,
         render: (setting) => this.renderTokenSetting(setting),
       },
       {
-        name: "Connection",
-        desc: "Check that the base URL and access token can reach your Linkwarden instance.",
+        name: s.connectionName,
+        desc: s.connectionDesc,
         render: (setting) => this.renderConnectionTest(setting),
       },
       {
-        name: "Deep-link target",
-        desc: "Where binding links point. Public collections can be shared without login.",
+        name: s.deepLinkName,
+        desc: s.deepLinkDesc,
         control: {
           type: "dropdown",
           key: "deepLinkTarget",
           options: {
-            links: "/links (detail page)",
-            preserved: "/preserved (reader)",
-            "public/links": "/public/links (no login)",
+            links: s.deepLinkLinks,
+            preserved: s.deepLinkPreserved,
+            "public/links": s.deepLinkPublic,
           },
         },
       },
       {
-        name: "Default collection",
-        desc: 'Target collection for exports. "Unorganized" is Linkwarden\'s default.',
+        name: s.collectionName,
+        desc: s.collectionDesc,
         render: (setting) => this.renderCollectionSetting(setting),
       },
       {
-        name: "Highlight cache TTL (minutes)",
-        desc: "How long cached highlights stay fresh before a refetch. 0 = always refetch.",
+        name: s.cacheTtlName,
+        desc: s.cacheTtlDesc,
         control: {
           type: "number",
           key: "cacheTtlMinutes",
@@ -83,17 +83,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       },
       {
         type: "group",
-        heading: "Color mapping",
+        heading: s.colorMapHeading,
         items: [
           {
-            name: "About color mapping",
+            name: s.colorMapAbout,
             searchable: false,
             render: (setting) => {
-              setting
-                .setName("")
-                .setDesc(
-                  "Map each Linkwarden highlight color to a callout type and an optional tag for the insert action.",
-                );
+              setting.setName("").setDesc(s.colorMapDesc);
             },
           },
           ...Object.keys(this.plugin.settings.colorMap).map((color) => ({
@@ -101,7 +97,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
             render: (setting: Setting) => this.renderColorRow(setting, color),
           })),
           {
-            name: "Add a color",
+            name: s.addColor,
             searchable: false,
             render: (setting: Setting) => this.renderAddColorRow(setting),
           },
@@ -160,15 +156,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     const s = this.plugin.settings;
+    const m = t().settings;
 
     new Setting(containerEl)
-      .setName("Instance base URL")
-      .setDesc(
-        "Your Linkwarden URL, used for API calls and binding deep links. " +
-          "Defaults to Linkwarden Cloud; change it if you self-host.",
-      )
-      .addText((t) =>
-        t
+      .setName(m.baseUrlName)
+      .setDesc(m.baseUrlDesc)
+      .addText((text) =>
+        text
           .setPlaceholder("https://cloud.linkwarden.app")
           .setValue(s.baseUrl)
           .onChange(async (v) => {
@@ -181,13 +175,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     this.renderConnectionTest(new Setting(containerEl));
 
     new Setting(containerEl)
-      .setName("Deep-link target")
-      .setDesc("Where binding links point. Public collections can be shared without login.")
+      .setName(m.deepLinkName)
+      .setDesc(m.deepLinkDesc)
       .addDropdown((d) =>
         d
-          .addOption("links", "/links (detail page)")
-          .addOption("preserved", "/preserved (reader)")
-          .addOption("public/links", "/public/links (no login)")
+          .addOption("links", m.deepLinkLinks)
+          .addOption("preserved", m.deepLinkPreserved)
+          .addOption("public/links", m.deepLinkPublic)
           .setValue(s.deepLinkTarget)
           .onChange(async (v) => {
             s.deepLinkTarget = v as DeepLinkTarget;
@@ -198,10 +192,10 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     this.renderCollectionSetting(new Setting(containerEl));
 
     new Setting(containerEl)
-      .setName("Highlight cache TTL (minutes)")
-      .setDesc("How long cached highlights stay fresh before a refetch. 0 = always refetch.")
-      .addText((t) =>
-        t
+      .setName(m.cacheTtlName)
+      .setDesc(m.cacheTtlDesc)
+      .addText((text) =>
+        text
           .setPlaceholder("60")
           .setValue(String(s.cacheTtlMinutes))
           .onChange(async (v) => {
@@ -226,12 +220,11 @@ export class LinkwardenSettingTab extends PluginSettingTab {
   }
 
   private renderTokenSetting(setting: Setting): void {
+    const m = t().settings;
     const store = this.plugin.tokenStore;
     const s = this.plugin.settings;
-    const generate =
-      "Generate one in Linkwarden under Settings → Access Tokens → Create Access Token. ";
 
-    setting.setName("Access token");
+    setting.setName(m.tokenName);
 
     if (store.hasSecretStorage()) {
       // SecretComponent owns the secret *value*; we persist only its *name*
@@ -239,10 +232,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       // treat the component's value as the raw token — its setValue/onChange
       // deal in the secret name, not the token.
       const desc = new DocumentFragment();
-      desc.append(
-        generate,
-        "Stored in Obsidian's device-local SecretStorage — never enters the synced vault. Enter once per device.",
-      );
+      desc.append(m.tokenIntro, m.tokenStorageSecret);
       setting.setDesc(desc);
 
       setting.addComponent((el) =>
@@ -259,15 +249,13 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     // No SecretStorage (Obsidian < 1.11.5, or no OS secret backend on Linux):
     // fall back to a masked plaintext value kept in the vault settings.
     const desc = new DocumentFragment();
-    desc.append(
-      generate,
-      "SecretStorage unavailable (needs Obsidian ≥ 1.11.5, Linux needs kwallet/libsecret). Falls back to storing in the vault settings.",
-    );
+    desc.append(m.tokenIntro, m.tokenStorageFallback);
     setting.setDesc(desc);
 
-    setting.addText((t) => {
-      t.inputEl.type = "password";
-      t.setPlaceholder("Access token")
+    setting.addText((text) => {
+      text.inputEl.type = "password";
+      text
+        .setPlaceholder(m.tokenName)
         .setValue(store.get())
         .onChange((v) => {
           // Boundary: the user typed the raw token value.
@@ -277,23 +265,22 @@ export class LinkwardenSettingTab extends PluginSettingTab {
   }
 
   private renderConnectionTest(setting: Setting): void {
+    const m = t().settings;
     let statusEl!: HTMLElement;
     setting
-      .setName("Connection")
-      .setDesc(
-        "Check that the base URL and access token can reach your Linkwarden instance.",
-      )
+      .setName(m.connectionName)
+      .setDesc(m.connectionDesc)
       .addButton((b) =>
-        b.setButtonText("Test connection").onClick(async () => {
+        b.setButtonText(m.testConnection).onClick(async () => {
           const client = this.plugin.getClient();
           if (!client) {
-            this.setConnStatus(statusEl, false, "Set the base URL and access token first.");
+            this.setConnStatus(statusEl, false, m.setUrlAndTokenFirst);
             return;
           }
-          b.setDisabled(true).setButtonText("Testing…");
-          this.setConnStatus(statusEl, null, "Testing…");
+          b.setDisabled(true).setButtonText(m.testing);
+          this.setConnStatus(statusEl, null, m.testing);
           const result = await client.checkConnection();
-          b.setDisabled(false).setButtonText("Test connection");
+          b.setDisabled(false).setButtonText(m.testConnection);
           this.setConnStatus(statusEl, result.ok, result.message);
         }),
       );
@@ -313,11 +300,12 @@ export class LinkwardenSettingTab extends PluginSettingTab {
 
   private renderCollectionSetting(setting: Setting): void {
     const s = this.plugin.settings;
+    const m = t().settings;
     let dropdown: DropdownComponent | undefined;
 
     const populate = (d: DropdownComponent): void => {
       d.selectEl.empty();
-      d.addOption("", "Unorganized (Linkwarden default)");
+      d.addOption("", m.collectionUnorganized);
       const names = new Set<string>();
       for (const c of this.plugin.collections) {
         if (names.has(c.name)) continue;
@@ -327,14 +315,14 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       // Keep the stored value selectable even when it isn't in the fetched list
       // (not yet refreshed, or a collection since renamed/removed).
       if (s.defaultCollection && !names.has(s.defaultCollection)) {
-        d.addOption(s.defaultCollection, `${s.defaultCollection} (not in list)`);
+        d.addOption(s.defaultCollection, m.collectionNotInList(s.defaultCollection));
       }
       d.setValue(s.defaultCollection);
     };
 
     setting
-      .setName("Default collection")
-      .setDesc('Target collection for exports. "Unorganized" is Linkwarden\'s default.')
+      .setName(m.collectionName)
+      .setDesc(m.collectionDesc)
       .addDropdown((d) => {
         dropdown = d;
         populate(d);
@@ -346,7 +334,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       .addExtraButton((b) =>
         b
           .setIcon("refresh-cw")
-          .setTooltip("Reload collections from Linkwarden")
+          .setTooltip(m.collectionReload)
           .onClick(() => void this.refreshCollections(dropdown, populate)),
       );
 
@@ -364,20 +352,21 @@ export class LinkwardenSettingTab extends PluginSettingTab {
     try {
       const result = await this.plugin.fetchCollections();
       if (result === null) {
-        new Notice("Linkwarden: set the instance URL and access token first.");
+        new Notice(t().settings.collectionSetUrlFirst);
         return;
       }
       if (dropdown) populate(dropdown);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      new Notice(`Linkwarden: could not load collections — ${msg}`);
+      new Notice(t().settings.collectionLoadFailed(msg));
     }
   }
 
   private renderColorMap(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName("Color mapping").setHeading();
+    const m = t().settings;
+    new Setting(containerEl).setName(m.colorMapHeading).setHeading();
     containerEl.createEl("p", {
-      text: "Map each Linkwarden highlight color to a callout type and an optional tag for the insert action.",
+      text: m.colorMapDesc,
       cls: "setting-item-description",
     });
 
@@ -388,22 +377,23 @@ export class LinkwardenSettingTab extends PluginSettingTab {
   }
 
   private renderColorRow(setting: Setting, color: string): void {
+    const m = t().settings;
     const map = this.plugin.settings.colorMap;
     const rule = map[color];
     setting
       .setName(color)
-      .addText((t) =>
-        t
-          .setPlaceholder("Callout type (quote)")
+      .addText((text) =>
+        text
+          .setPlaceholder(m.colorCalloutPlaceholder)
           .setValue(rule.callout)
           .onChange(async (v) => {
             rule.callout = v.trim() || "quote";
             await this.plugin.saveSettings();
           }),
       )
-      .addText((t) =>
-        t
-          .setPlaceholder("Tag (optional)")
+      .addText((text) =>
+        text
+          .setPlaceholder(m.colorTagPlaceholder)
           .setValue(rule.tag ?? "")
           .onChange(async (v) => {
             const tag = v.trim().replace(/^#/, "");
@@ -415,7 +405,7 @@ export class LinkwardenSettingTab extends PluginSettingTab {
       .addExtraButton((b) =>
         b
           .setIcon("trash")
-          .setTooltip("Remove")
+          .setTooltip(m.colorRemove)
           .onClick(async () => {
             delete map[color];
             await this.plugin.saveSettings();
@@ -425,18 +415,19 @@ export class LinkwardenSettingTab extends PluginSettingTab {
   }
 
   private renderAddColorRow(setting: Setting): void {
+    const m = t().settings;
     const map = this.plugin.settings.colorMap;
     let newColor = "";
     setting
-      .setName("Add a color")
-      .addText((t) =>
-        t.setPlaceholder("Color value from Linkwarden").onChange((v) => {
+      .setName(m.addColor)
+      .addText((text) =>
+        text.setPlaceholder(m.addColorPlaceholder).onChange((v) => {
           newColor = v.trim().toLowerCase();
         }),
       )
       .addButton((b) =>
         b
-          .setButtonText("Add")
+          .setButtonText(m.add)
           .setCta()
           .onClick(async () => {
             if (!newColor || map[newColor]) return;

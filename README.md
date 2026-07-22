@@ -11,23 +11,74 @@ No sync engine, no merge/clobber problem. A link is bound to Linkwarden by a
 single Markdown link whose target is the instance deep URL (`<base>/links/<id>`);
 the id in the href *is* the binding (single source of truth).
 
+<!--
+  TODO(demo GIF): record the complete flow and drop the file at
+  docs/assets/demo.gif, then uncomment the <p> block below.
+
+  Suggested shot list (one continuous ~20s capture):
+    1. Click the highlighter ribbon icon → the highlight panel opens on the right.
+    2. Run "Linkwarden: Link a source (search)", type a query, pick a result →
+       a bound Markdown link is inserted at the cursor.
+    3. The panel refreshes and shows that source's highlights.
+    4. Click "Insert as quote" on a highlight → it lands as a callout in the note.
+    5. Run "Linkwarden: Export note links", tick a URL, Archive → the bare URL is
+       rewritten to a binding link.
+
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Linkwarden for Obsidian — link a source, read its highlights, insert a quote, and archive a URL" width="720">
+</p>
+-->
+
+## Usage
+
+Once the token and base URL are set (see [Setup](#setup)):
+
+1. **Open the highlight panel.** Click the **highlighter** icon in the left
+   ribbon (tooltip *"Linkwarden highlights"*), or run **Linkwarden: Open
+   highlight panel** from the command palette. The panel docks on the right and
+   tracks whichever note is active — that's where highlights show up, so keep an
+   eye on it.
+2. **Link a note to a Linkwarden entry.** With the cursor where you want the
+   link, run **Linkwarden: Link a source (search)** (also the 🔍 button in the
+   panel toolbar). Search your library and pick a result; a Markdown link bound
+   to that entry's stable id is inserted. If you search a URL that isn't saved
+   yet, the picker offers to archive it on the spot.
+3. **Read its highlights.** The panel scans the active note for Linkwarden
+   links and lists each source's highlights (text, comment, color) in reading
+   order. Use the ↻ button to refresh; it works offline from a cache.
+4. **Insert a highlight as a quote.** Each highlight has an **Insert as
+   quote** button that drops it into the note at the cursor as a callout with a
+   referenceable block id (`^lw-<id>`). Highlight colors map to callout types and
+   tags (configurable in settings).
+5. **Archive a note's URLs.** Run **Linkwarden: Export note links** (⬆ in
+   the toolbar) to list the note's external URLs as a checklist; selected ones
+   are archived to Linkwarden and rewritten in place to their binding links. You
+   can also scan the whole vault from that modal.
+6. **Re-link a moved source.** If a link's Linkwarden id changed, put the
+   cursor on it and run **Linkwarden: Re-link source under cursor** (🔗 in the
+   toolbar) to re-bind it without touching the visible text.
+
+All commands appear in the palette prefixed with **Linkwarden:**. The interface
+follows Obsidian's display language — **English** and **German** ship today, with
+English as the fallback for any other language.
+
 ## Features
 
-- **Link picker (F1)** — a command opens a search box over your Linkwarden
+- **Link picker** — a command opens a search box over your Linkwarden
   library (`/api/v1/search`); picking a result inserts a Markdown link bound to
   that link's stable id. The visible link text stays as a readable fallback.
-- **Highlight panel (F2)** — a right-sidebar view that scans the active note for
+- **Highlight panel** — a right-sidebar view that scans the active note for
   Linkwarden links and shows their highlights (text, comment, color), grouped
   per source, sorted in reading order. Works offline from a TTL cache.
-- **Export / archive (F3)** — a command lists the note's external URLs as a
+- **Export / archive** — a command lists the note's external URLs as a
   checkbox list; selected URLs are `POST`ed to Linkwarden and the body link is
   rewritten to the binding deep URL. Server-side de-duplication is respected
   (enable `preventDuplicateLinks` in Linkwarden).
-- **Insert highlight as a quote (F4)** — each highlight in the panel has an
+- **Insert highlight as a quote** — each highlight in the panel has an
   "insert" action that materializes it at the cursor as a callout with a
   referenceable block id (`^lw-<id>`). A configurable color→callout/tag map turns
   your highlight colors into searchable vault semantics.
-- **Re-link (F5)** — re-bind a source whose Linkwarden id changed.
+- **Re-link** — re-bind a source whose Linkwarden id changed.
 
 ## Setup
 

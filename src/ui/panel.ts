@@ -18,6 +18,7 @@ import {
   blockSeparatorBefore,
   blockSeparatorAfter,
 } from "../core/quote";
+import { t } from "../i18n";
 
 export const VIEW_TYPE_PANEL = "linkwarden-panel";
 
@@ -49,7 +50,7 @@ export class HighlightPanel extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Linkwarden highlights";
+    return t().panel.displayText;
   }
 
   getIcon(): string {
@@ -75,24 +76,24 @@ export class HighlightPanel extends ItemView {
     this.groups = [];
 
     if (!file || file.extension !== "md") {
-      this.renderMessage("Open a note to see its Linkwarden highlights.");
+      this.renderMessage(t().panel.openNoteToSee);
       return;
     }
 
     const base = this.plugin.baseUrl;
     if (!base) {
-      this.renderMessage("Set your Linkwarden instance URL in settings.");
+      this.renderMessage(t().panel.setUrlInSettings);
       return;
     }
 
     const body = await this.app.vault.cachedRead(file);
     const bindings = extractBindings(body, base);
     if (bindings.length === 0) {
-      this.renderMessage("No Linkwarden links in this note.");
+      this.renderMessage(t().panel.noLinksInNote);
       return;
     }
 
-    this.renderMessage("Loading highlights…");
+    this.renderMessage(t().panel.loading);
     const client = this.plugin.getClient();
 
     const groups: SourceGroup[] = [];
@@ -108,7 +109,7 @@ export class HighlightPanel extends ItemView {
         groups.push({
           binding,
           highlights: stale ? sortHighlights(stale.highlights) : [],
-          error: stale ? undefined : "Not configured / offline.",
+          error: stale ? undefined : t().panel.notConfiguredOffline,
         });
         continue;
       }
@@ -156,14 +157,14 @@ export class HighlightPanel extends ItemView {
       btn.onclick = onClick;
     };
 
-    action("refresh-cw", "Refresh highlights", () => void this.refresh(true));
-    action("search", "Link a source (search)", () =>
+    action("refresh-cw", t().panel.actions.refresh, () => void this.refresh(true));
+    action("search", t().panel.actions.link, () =>
       this.withEditor((ed) => this.plugin.openLinkPicker(ed)),
     );
-    action("upload", "Export note links", () =>
+    action("upload", t().panel.actions.export, () =>
       this.withEditor((ed) => this.plugin.openExport(ed)),
     );
-    action("link", "Re-link source under cursor", () =>
+    action("link", t().panel.actions.relink, () =>
       this.withEditor((ed) => this.plugin.relink(ed)),
     );
   }
@@ -172,7 +173,7 @@ export class HighlightPanel extends ItemView {
   private withEditor(fn: (editor: Editor) => void): void {
     const view = this.markdownViewForCurrentFile();
     if (!view) {
-      new Notice("Open the note in a Markdown pane first.");
+      new Notice(t().panel.openInPaneFirst);
       return;
     }
     fn(view.editor);
@@ -188,7 +189,7 @@ export class HighlightPanel extends ItemView {
     if (total === 0 && this.groups.every((g) => !g.error)) {
       container.createDiv({
         cls: "lw-panel-empty",
-        text: "No highlights yet. Mark passages in Linkwarden, then refresh.",
+        text: t().panel.noHighlightsYet,
       });
       return;
     }
@@ -227,7 +228,7 @@ export class HighlightPanel extends ItemView {
     const actions = bodyEl.createDiv({ cls: "lw-highlight-actions" });
     const insert = actions.createEl("button", {
       cls: "lw-highlight-insert",
-      text: "Insert as quote",
+      text: t().panel.insertAsQuote,
     });
     insert.onclick = () => this.insertQuote(binding, h);
   }
@@ -250,12 +251,12 @@ export class HighlightPanel extends ItemView {
     // active Markdown view — find the note's editor by file instead.
     const view = this.markdownViewForCurrentFile();
     if (!view) {
-      new Notice("Open the note in a Markdown pane to insert.");
+      new Notice(t().panel.openInPaneToInsert);
       return;
     }
     const editor = view.editor;
     if (hasBlockId(editor.getValue(), h.id)) {
-      new Notice(`Already inserted (^${blockId(h.id)}).`);
+      new Notice(t().panel.alreadyInserted(blockId(h.id)));
       return;
     }
     const label = binding.text?.trim() || binding.url;
@@ -284,7 +285,7 @@ export class HighlightPanel extends ItemView {
       const suffix = blockSeparatorAfter(value.slice(to));
       editor.replaceSelection(`${prefix}${quote}${suffix}`);
     }
-    new Notice(`Inserted ^${blockId(h.id)}.`);
+    new Notice(t().panel.inserted(blockId(h.id)));
   }
 }
 

@@ -3,6 +3,7 @@ import type LinkwardenPlugin from "../main";
 import type { LinkwardenClient } from "../api/client";
 import { extractBindings } from "../core/links";
 import { LinkPicker } from "./picker";
+import { t } from "../i18n";
 
 /**
  * F5 — re-bind the source under the cursor to a (new) Linkwarden link, e.g.
@@ -24,7 +25,7 @@ export function runRelinkCommand(
     [...bindings].reverse().find((b) => b.end <= cursor);
 
   if (!atCursor) {
-    new Notice("Place the cursor on a Linkwarden link to re-link it.");
+    new Notice(t().relink.placeCursorOnLink);
     return;
   }
 
@@ -36,8 +37,8 @@ export function runRelinkCommand(
       const from = editor.offsetToPos(atCursor.urlStart);
       const to = editor.offsetToPos(atCursor.urlEnd);
       editor.replaceRange(href, from, to);
-      new Notice(`Re-linked to #${link.id}.`);
+      new Notice(t().relink.relinked(link.id));
     },
-    "Search for the new Linkwarden link…",
+    t().relink.searchPlaceholder,
   ).open();
 }

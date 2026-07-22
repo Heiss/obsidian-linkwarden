@@ -1,4 +1,4 @@
-import { Editor, Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { Editor, Notice, Plugin, WorkspaceLeaf, getLanguage } from "obsidian";
 import { LinkwardenClient } from "./api/client";
 import type { CollectionSummary } from "./api/models";
 import { HighlightCache, type CacheData } from "./core/cache";
@@ -16,6 +16,7 @@ import { LinkPicker } from "./ui/picker";
 import { ExportModal } from "./ui/exportModal";
 import { runRelinkCommand } from "./ui/relink";
 import { formatBindingLink, linkLabel } from "./core/binding";
+import { initI18n, t } from "./i18n";
 
 interface PersistedData {
   settings?: Partial<LinkwardenSettings>;
@@ -30,6 +31,7 @@ export default class LinkwardenPlugin extends Plugin {
   tokenStore!: TokenStore;
 
   async onload(): Promise<void> {
+    initI18n(getLanguage());
     const data = (await this.loadData()) as PersistedData | null;
     this.settings = mergeSettings(data?.settings);
     this.cache = new HighlightCache(this.settings.cacheTtlMinutes, data?.cache);
@@ -50,31 +52,31 @@ export default class LinkwardenPlugin extends Plugin {
       (leaf) => new HighlightPanel(leaf, this),
     );
 
-    this.addRibbonIcon("highlighter", "Linkwarden highlights", () => {
+    this.addRibbonIcon("highlighter", t().plugin.ribbonTooltip, () => {
       void this.activatePanel();
     });
 
     this.addCommand({
       id: "open-panel",
-      name: "Open highlight panel",
+      name: t().plugin.commands.openPanel,
       callback: () => void this.activatePanel(),
     });
 
     this.addCommand({
       id: "link-picker",
-      name: "Link a source (search)",
+      name: t().plugin.commands.linkPicker,
       editorCallback: (editor) => this.openLinkPicker(editor),
     });
 
     this.addCommand({
       id: "export-note-links",
-      name: "Export note links",
+      name: t().plugin.commands.exportLinks,
       editorCallback: (editor) => this.openExport(editor),
     });
 
     this.addCommand({
       id: "relink-source",
-      name: "Re-link source under cursor",
+      name: t().plugin.commands.relink,
       editorCallback: (editor) => this.relink(editor),
     });
 
@@ -130,9 +132,7 @@ export default class LinkwardenPlugin extends Plugin {
   }
 
   warnNotConfigured(): void {
-    new Notice(
-      "Linkwarden: set the instance URL and access token in settings first.",
-    );
+    new Notice(t().plugin.notConfigured);
   }
 
   /** F1 — open the search picker and insert a binding at the cursor. */

@@ -9,6 +9,7 @@ import {
 } from "../core/exportPlan";
 import { formatBindingLink, linkLabel } from "../core/binding";
 import { resolveArchive } from "./archive";
+import { t } from "../i18n";
 
 /** One found link plus where it lives: `null` file → the active editor. */
 interface Entry {
@@ -80,7 +81,7 @@ export class ExportModal extends Modal {
    */
   private groupEntries(): { label: string; indices: number[] }[] {
     const activeLabel =
-      this.plugin.app.workspace.getActiveFile()?.path ?? "Current note";
+      this.plugin.app.workspace.getActiveFile()?.path ?? t().export.currentNote;
     const order: string[] = [];
     const byKey = new Map<string, { label: string; indices: number[] }>();
     this.entries.forEach((e, i) => {
@@ -102,28 +103,28 @@ export class ExportModal extends Modal {
     this.rowEls = [];
     this.statusEls = [];
     this.controls = [];
-    contentEl.createEl("h3", { text: "Export links to Linkwarden" });
+    contentEl.createEl("h3", { text: t().export.title });
 
     const controls = contentEl.createDiv({ cls: "lw-export-controls" });
     const newCount = this.entries.filter((e) => !e.item.alreadyLinked).length;
     controls.createSpan({
       text:
         this.entries.length === 0
-          ? "No external links found."
-          : `${newCount} new · ${this.entries.length - newCount} already linked`,
+          ? t().export.noExternalLinks
+          : t().export.counts(newCount, this.entries.length - newCount),
     });
 
     const btns = controls.createDiv();
-    const scanAll = btns.createEl("button", { text: "Scan entire vault" });
+    const scanAll = btns.createEl("button", { text: t().export.scanVault });
     scanAll.onclick = () => void this.scanVault();
     this.controls.push(scanAll);
     if (this.entries.length > 0) {
-      const selAll = btns.createEl("button", { text: "Select all new" });
+      const selAll = btns.createEl("button", { text: t().export.selectAllNew });
       selAll.onclick = () => {
         this.preselectNew();
         this.render();
       };
-      const selNone = btns.createEl("button", { text: "Select none" });
+      const selNone = btns.createEl("button", { text: t().export.selectNone });
       selNone.onclick = () => {
         this.selected.clear();
         this.render();
@@ -133,7 +134,7 @@ export class ExportModal extends Modal {
 
     if (this.entries.length === 0) {
       contentEl.createEl("p", {
-        text: "Nothing to export here. Try scanning the whole vault.",
+        text: t().export.nothingHere,
         cls: "lw-panel-empty",
       });
       return;
@@ -181,7 +182,7 @@ export class ExportModal extends Modal {
   }
 
   private updateArchiveLabel(): void {
-    this.archiveBtn?.setText(`Archive ${this.selected.size} selected`);
+    this.archiveBtn?.setText(t().export.archiveSelected(this.selected.size));
   }
 
   /** Update one row's trailing status icon (and highlight it while working). */
@@ -211,7 +212,7 @@ export class ExportModal extends Modal {
   private renderProgress(done: number, total: number, label: string): void {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h3", { text: "Export links to Linkwarden" });
+    contentEl.createEl("h3", { text: t().export.title });
     const wrap = contentEl.createDiv({ cls: "lw-progress" });
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     wrap.createDiv({
@@ -231,7 +232,7 @@ export class ExportModal extends Modal {
     const activePath = workspace.getActiveFile()?.path;
     const files = vault.getMarkdownFiles();
 
-    this.renderProgress(0, files.length, "Scanning notes…");
+    this.renderProgress(0, files.length, t().export.scanning);
     const entries: Entry[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -247,7 +248,7 @@ export class ExportModal extends Modal {
       }
       // Repaint the bar every so often (and on the final file).
       if (i % 20 === 0 || i === files.length - 1) {
-        this.renderProgress(i + 1, files.length, "Scanning notes…");
+        this.renderProgress(i + 1, files.length, t().export.scanning);
         await yieldToPaint();
       }
     }
@@ -266,7 +267,7 @@ export class ExportModal extends Modal {
       .sort((a, b) => a - b);
 
     if (order.length === 0) {
-      new Notice("Nothing selected.");
+      new Notice(t().export.nothingSelected);
       return;
     }
 
@@ -324,10 +325,10 @@ export class ExportModal extends Modal {
     }
 
     this.busy = false;
-    new Notice(`Linkwarden: archived & linked ${ok}/${order.length}.`);
+    new Notice(t().export.archivedAndLinked(ok, order.length));
     // Keep the modal open so the green checks stay visible; repurpose the button.
     this.archiveBtn.disabled = false;
-    this.archiveBtn.setText("Close");
+    this.archiveBtn.setText(t().export.close);
     this.archiveBtn.onclick = () => this.close();
   }
 
@@ -338,14 +339,14 @@ export class ExportModal extends Modal {
     wrap.addClass("is-visible");
     const label = wrap.createDiv({
       cls: "lw-progress-label",
-      text: `Archiving… 0/${total}`,
+      text: t().export.archivingProgress(0, total),
     });
     const fill = wrap
       .createDiv({ cls: "lw-progress-track" })
       .createDiv({ cls: "lw-progress-bar" });
     return {
       update: (done: number) => {
-        label.setText(`Archiving… ${done}/${total}`);
+        label.setText(t().export.archivingProgress(done, total));
         fill.style.width = `${Math.round((done / total) * 100)}%`;
       },
     };
