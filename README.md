@@ -1,3 +1,5 @@
+> The plugin is not officially from the Linkwarden project and has nothing to do with its development.
+
 # Linkwarden for Obsidian
 
 **The [Linkwarden](https://linkwarden.app) plugin for Obsidian.** Search and link
